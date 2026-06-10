@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Home</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script src="{{ url_for('static', filename='js/mathsQuiz.js') }}?v={{ range(1, 99999)|random }}"></script>
+</head>
+<body>
+    <nav>
+        <p style="padding-left: 5px; text-shadow: 2px 2px 5px darkgrey;">
+            Top Score:
+        </p>
+        <button class="clean-button vertical-centre"><img src="{{ url_for('static', filename='images/History.png') }}" alt="History" style="width: 45px; height: 45px; padding-right: 5px;"></button>
+    </nav>
+    <section>
+        <button class="homeButtons" style="background-color: var(--additionColor); border-color: var(--additionColor2);">
+            <p style="font-size: 26px; padding-top: 5px;">Addition</p>
+            <img src="{{ url_for('static', filename='images/addition.png') }}" alt="Addition" style="width: 70px; height: 70px">
+        </button>
+
+        <button class="homeButtons" style="background-color: var(--subtractionColor); border-color: var(--subtractionColor2);">
+            <p style="font-size: 26px; padding-top: 5px;">Subtraction</p>
+            <img src="{{ url_for('static', filename='images/Subtraction.png') }}" alt="Addition" style="width: 70px; height: 70px">
+        </button>
+
+        <button class="homeButtons" style="background-color: var(--multiplicationColor); border-color: var(--multiplicationColor2);">
+            <p style="font-size: 26px; padding-top: 5px;">Multiplication</p>
+            <img src="{{ url_for('static', filename='images/Multiplication.png') }}" alt="Addition" style="width: 70px; height: 70px">
+        </button>
+
+        <button class="homeButtons" style="background-color: var(--divisionColor); border-color: var(--divisionColor2);">
+            <p style="font-size: 26px; padding-top: 5px;">Division</p>
+            <img src="{{ url_for('static', filename='images/Division.png') }}" alt="Addition" style="width: 70px; height: 70px">
+        </button>
+
+        <button class="homeButtons horizontal-centre" style="background-color: var(--mixColor); border-color: var(--mixColor2); flex-direction: column; height: 150px;">
+            <img src="{{ url_for('static', filename='images/Mix.png') }}" alt="Addition" style="width: 80px; height: 80px">
+            <p style="font-size: 30px; padding-top: 5px;">Mix Mode</p>
+        </button>
+    </section>
+
+</body>
+</html>

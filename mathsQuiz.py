@@ -28,8 +28,6 @@ class Question:
 
 class QuestionManager:
 
-
-
     def __init__(self, amount: int | None):
         if amount is not None and amount < 1: raise ValueError("Amount must be a positive integer")
 
@@ -75,37 +73,32 @@ class QuestionManager:
                 expression += f"{number} {type} "
             return expression
 
-        questionWord = ""
-        expression = ""
-        if type == "+":
-            expression = additionGenerator()
-            questionWord = "What is the sum of"
-        if type == "-":
-            expression = subtractionGenerator()
-            questionWord = "What is the difference of"
-
-        if type == "*":
+        def multiplicationGenerator(nums=None):
             numNumbers = 2
-            questionWord = "What is the multiple of"
+            if nums is not None: numNumbers = nums
 
+            expression = ""
             for num in range(numNumbers):
                 if num == 0:
                     minNum = round(mc.clamp(difficulty - 5, 1, 12))
                     maxNum = round(mc.clamp(math.exp(2.1) * difficulty / 3, 2, 12))
                     number = random.randint(minNum, maxNum)
                 else:
-                    if random.randint(0, 15) == 5: number = 0
+                    if random.randint(0, 15) == 5:
+                        number = 0
                     else:
                         currentNum = sympify(f"{expression}1")
                         number = random.randint(1, 5)
 
                 expression += f"{number} {type} "
+            return expression
 
-        if type == "/":
+        def divisionGenerator(nums=None):
             numNumbers = 2
             if difficulty > 5: numNumbers = 3
+            if nums is not None: numNumbers = nums
 
-            questionWord = "What is the dividable of"
+            expression = ""
             for num in range(numNumbers):
                 number = 0
                 if num == 0:
@@ -128,6 +121,23 @@ class QuestionManager:
                     print(f"Further Nums: {number}")
 
                 expression += f"{number} {type} "
+            return expression
+
+
+        questionWord = ""
+        expression = ""
+        if type == "+":
+            expression = additionGenerator()
+            questionWord = "What is the sum of"
+        if type == "-":
+            expression = subtractionGenerator()
+            questionWord = "What is the difference of"
+        if type == "*":
+            expression = multiplicationGenerator()
+            questionWord = "What is the multiple of"
+        if type == "/":
+            expression = divisionGenerator()
+            questionWord = "What is the division of"
 
 
 
@@ -156,6 +166,6 @@ print(p)
 print(int(q) + int(p))
 
 manager = QuestionManager(1)
-manager.genQuestion("-", 10, 0)
+manager.genQuestion("/", 10, 0)
 
 print(manager.questions[0])

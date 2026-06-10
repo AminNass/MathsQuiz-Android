@@ -1,0 +1,128 @@
+:root {
+    --additionColor: #ffd966ff;
+    --additionColor2: #fff2cc;
+    --subtractionColor: #ff5959ff;
+    --subtractionColor2: #f4cccc;
+    --multiplicationColor: #93c47dff;
+    --multiplicationColor2: #d9ead3;
+    --divisionColor: #94dcfeff;
+    --divisionColor2: #c9daf8;
+    --mixColor: #f5a0c9ff;
+    --mixColor2: #ead1dc;
+}
+
+@font-face {
+    font-family: 'BubblegumSans';
+    src: url('../fonts/BubblegumSans-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+nav {
+    background-color: lightgray;
+    width: 100%;
+    height: 50px;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+
+    box-shadow: 0 1px 6px black;
+
+    z-index: 2;
+}
+
+section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    background-image: radial-gradient(white, ghostwhite, lightgray);
+    width: 100%;
+    height: 100%;
+
+    z-index: 1;
+}
+
+.homeButtons {
+    display: flex;
+    flex-direction: row;
+
+    width: 250px;
+    height: 100px;
+
+    padding: 10px;
+    margin: 10px;
+    justify-content: space-between;
+
+    font-weight: 600;
+
+    color: white;
+    border-radius: 30px;
+    text-shadow: 2px 2px 1px black;
+    border-style: solid;
+    border-width: 5px;
+    border-color: black;
+
+
+    cursor: pointer;
+}
+
+.homeButtons:hover {
+    filter: brightness(0.9);
+    transition: filter 0.3s;
+}
+
+/* Element Settings */
+
+.horizontal-centre {
+    display: flex;
+    align-items: center;
+}
+.vertical-centre {
+    display: flex;
+    justify-content: center;
+}
+
+.clean-button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+
+    font: inherit;
+    color: inherit;
+
+    cursor: pointer;
+    outline: none;
+
+    -webkit-appearance: none;
+    appearance: none;
+}
+.clean-button:hover {
+    filter: brightness(0.9);
+    transition: filter 0.3s;
+}
+
+/* Default Elements Settings */
+html, body {
+    font-family: "BubblegumSans", sans-serif;
+    font-size: 28px;
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+p {
+    font-family: "BubblegumSans", sans-serif;
+    font-size: 22px;
+
+    margin: 0;
+    padding: 0;
+}

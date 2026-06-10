@@ -36,83 +36,116 @@ class QuestionManager:
         self.questions: list[Question] = []
         self.amount: Final[int | None] = amount
 
-    def generateQuestion(self, type: str, difficulty: int):
+    def genQuestion(self, type: str, difficulty: int, level: int):
 
-        minNumNumber = round(math.pow(1.05, difficulty) + 1)
-        maxNumNumber = round(math.pow(1.15, difficulty) + 1)
-        numNumbers = min(6, minNumNumber)
-        print(f"{minNumNumber} - {maxNumNumber}")
+        if difficulty > 10 or difficulty < 1: raise ValueError("Difficulty must be a non-zero positive integer and no higher than 10.")
 
-        expression = ""
-        if type in ["+","-","*"]:
+        def additionGenerator(nums = None):
+            expression = ""
+            randNumNumber = round(math.pow(1.05, difficulty) + 1)
+            numNumbers = min(6, randNumNumber)
+            if nums is not None: numNumbers = nums
+
             for num in range(numNumbers):
                 minNum = round(mc.clamp(difficulty - 5, 1, 12))
                 maxNum = round(mc.clamp(math.exp(2.1) * difficulty / 3, 2, 12))
                 number = random.randint(minNum, maxNum)
-                print(f"{minNum} - {maxNum}")
+
+                expression += f"{number} + "
+            return expression
+
+        def subtractionGenerator(nums=None):
+            randNumNumber = round(math.pow(1.05, difficulty) + 1)
+            numNumbers = min(6, randNumNumber)
+            if nums is not None: numNumbers = nums
+
+            expression = ""
+            for num in range(numNumbers):
+                number = 0
+                if num == 0:
+                    minNum = round(mc.clamp(difficulty - 5, 2, 12))
+                    maxNum = round(mc.clamp(math.exp(2.1) * difficulty / 3, 3, 12))
+                    number = random.randint(minNum, maxNum)
+                    print(f"First Num: {number}")
+                else:
+                    currentNum = sympify(f"{expression}0")
+                    number = random.randint(0, currentNum - 1)
+                    print(f"Further Nums: {number}")
 
                 expression += f"{number} {type} "
-        elif type == "/":
-            for num in range(numNumbers):
-                if num == 0:
-                    minNum = round(mc.clamp(difficulty - 5, 1, 12))
-                    maxNum = round(mc.clamp(math.exp(2.1) * difficulty / 3, 2, 12 ))
-                    number = random.randint(minNum, maxNum)
-                    print(f"{minNum} - {maxNum}")
-                    expression += f"{number} {type} "
-                    continue
-
-                currentAnswer = sympify(f"{expression}1")
-
-                factors = mc.factors(currentAnswer)
-                randomFactor = random.choice(factors)
-                expression += f"{randomFactor} {type} "
-
-
-        expression = expression[:-2]
-
-        question = Question(f"What is the sum of [{expression}]?")
-        self.questions.append(question)
-        return question
-
-    def genQuestion(self, type: str, difficulty: int):
-
-        if difficulty > 10 or difficulty < 1: raise ValueError("Difficulty must be a non-zero positive integer and no higher than 10.")
+            return expression
 
         questionWord = ""
         expression = ""
         if type == "+":
-            randNumNumber = round(math.pow(1.05, difficulty) + 1)
-            numNumbers = min(6, randNumNumber)
+            expression = additionGenerator()
             questionWord = "What is the sum of"
-
-            for num in range(numNumbers):
-                minNum = round(mc.clamp(difficulty - 5, 1, 12))
-                maxNum = round(mc.clamp(math.exp(2.1) * difficulty / 3, 2, 12))
-                number = random.randint(minNum, maxNum)
-
-                expression += f"{number} {type} "
-
         if type == "-":
-            randNumNumber = round(math.pow(1.05, difficulty) + 1)
-            numNumbers = min(6, randNumNumber)
+            expression = subtractionGenerator()
             questionWord = "What is the difference of"
 
+        if type == "*":
+            numNumbers = 2
+            questionWord = "What is the multiple of"
+
             for num in range(numNumbers):
-                if difficulty < 5:
-                    while
+                if num == 0:
                     minNum = round(mc.clamp(difficulty - 5, 1, 12))
                     maxNum = round(mc.clamp(math.exp(2.1) * difficulty / 3, 2, 12))
                     number = random.randint(minNum, maxNum)
+                else:
+                    if random.randint(0, 15) == 5: number = 0
+                    else:
+                        currentNum = sympify(f"{expression}1")
+                        number = random.randint(1, 5)
 
-                    expression += f"{number} {type} "
+                expression += f"{number} {type} "
+
+        if type == "/":
+            numNumbers = 2
+            if difficulty > 5: numNumbers = 3
+
+            questionWord = "What is the dividable of"
+            for num in range(numNumbers):
+                number = 0
+                if num == 0:
+                    minNum = round(mc.clamp(difficulty - 5, 4, 12))
+                    maxNum = round(mc.clamp(math.exp(3) * difficulty, 5, 12))
+                    number = random.randint(minNum, maxNum)
+                    print(f"First Num: {number}, {minNum}, {maxNum}")
+                else:
+                    currentNum = sympify(f"{expression}1")
+                    factors = mc.factors(currentNum)
+                    print(f"Factors: {factors}")
+                    print("Current: " + str(currentNum))
+                    if len(factors) != 1:
+                        if random.randint(0, 15) == 5: number = 1
+                        else:
+                            factors.remove(1)
+                            number = random.choice(factors)
+                    else:
+                        number = 1
+                    print(f"Further Nums: {number}")
+
+                expression += f"{number} {type} "
+
+
+
 
         expression = expression[:-2]
 
         question = Question(f"{questionWord} [{expression}]?")
         self.questions.append(question)
+
+        self.timer(level)
+
         return question
 
+    def timer(self, level: int):
+        from threading import Timer
+        if level == 0: return
+        if level == 2: Timer(20, print, args=('Time is up',)).start()
+        if level == 3: Timer(10, print, args=('Time is up',)).start()
 
 
 
@@ -123,6 +156,6 @@ print(p)
 print(int(q) + int(p))
 
 manager = QuestionManager(1)
-manager.genQuestion("+", 12)
+manager.genQuestion("-", 10, 0)
 
 print(manager.questions[0])

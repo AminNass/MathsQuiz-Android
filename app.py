@@ -82,6 +82,8 @@ class App:
                 type = "*"
             elif questionType == "division":
                 type = "/"
+            elif questionType == "mix":
+                type = "mix"
             else: raise ValueError("Invalid question type")
 
             question = None
@@ -104,7 +106,14 @@ class App:
 
         @self.app.route('/history')
         def history():
-            return render_template('history.html')
+            import mathCommon as mc
+
+            history = mc.getHistory()
+
+            return render_template(
+                'history.html',
+                history=history,
+            )
 
     def appAPI(self):
 
@@ -119,9 +128,14 @@ class App:
             questionIndex = len(self.currentManager.questions) - 1
             question = self.currentManager.questions[questionIndex]
 
-            result = question.checkAnswer(answer)
+            result = question.checkAnswer(answer, self.currentManager.timeLimitPassed)
 
             if result:
+                if not self.currentManager.timeLimitPassed:
+                    self.currentManager.updateDifficulty(int(answer))
+                self.currentManager.saveToHistory()
+                if self.currentManager.activeTimer is not None:
+                    self.currentManager.activeTimer.cancel()
                 return jsonify({"status": "success", "message": "Answer submitted successfully"})
 
             return jsonify({"status": "error", "message": "Answer submitted unsuccessfully"})

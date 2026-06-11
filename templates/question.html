@@ -8,15 +8,21 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
     <script src="{{ url_for('static', filename='js/mathsQuiz.js') }}?v={{ range(1, 99999)|random }}"></script>
+    <script src="{{ url_for('static', filename='js/timer.js') }}?v={{ range(1, 99999)|random }}"></script>
 </head>
 <body>
     <nav>
         <p style="padding-left: 5px; text-shadow: 2px 2px 5px darkgrey;">
             Question: {{ count }} / 10
         </p>
-        <button onclick="window.location.href='/'" class="clean-button vertical-centre"><img src="{{ url_for('static', filename='images/History.png') }}" alt="History" style="width: 45px; height: 45px; padding-right: 5px;"></button>
+        <button onclick="window.location.href='/'" class="clean-button vertical-centre"><img src="{{ url_for('static', filename='images/GoBack.png') }}" alt="Go Back" style="width: 40px; height: 40px; padding-right: 5px;"></button>
     </nav>
     <section>
+
+        <div id="timer"></div>
+
+        <br>
+
         {% if questionType == 'addition' %}
             <img src="{{ url_for('static', filename='images/Addition.png') }}" alt="Addition" style="width: 100px; height: 100px">
             <h1>Addition</h1>
@@ -34,13 +40,13 @@
             <h1>Mix Mode</h1>
         {% endif %}
 
-        <h3>{{ question.question }}</h3>
+        <h3 class="text-centre" style="padding: 8px;">{{ question.question }}</h3>
 
         <label for="answer">Answer</label>
-        <input type="number" id="answer" name="answer">
+        <input type="number" id="answer" name="answer" onkeydown="answerPressEnter(event, this, '{{ questionType }}','{{ level }}')">
 
         <br>
-        <button onclick="submitAnswer('{{ questionType }}')">Submit Answer</button>
+        <button onclick="submitAnswer('{{ questionType }}','{{ level }}')">Submit Answer</button>
 
     </section>
 

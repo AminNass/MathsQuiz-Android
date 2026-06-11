@@ -33,12 +33,15 @@
         <button onclick="window.location.href='question?question-type={{ questionType }}&level=0&state=new'" class="homeButtons horizontal-centre vertical-centre" style="background-color: var(--multiplicationColor); border-color: var(--multiplicationColor2);">
             <p style="font-size: 38px; padding-top: 5px;">Level 0</p>
         </button>
-        <button class="homeButtons horizontal-centre vertical-centre" style="background-color: var(--additionColor); border-color: var(--additionColor2);">
+        <button onclick="window.location.href='question?question-type={{ questionType }}&level=1&state=new'" class="homeButtons horizontal-centre vertical-centre" style="background-color: var(--additionColor); border-color: var(--additionColor2);">
             <p style="font-size: 38px; padding-top: 5px;">Level 1</p>
         </button>
-        <button class="homeButtons horizontal-centre vertical-centre" style="background-color: var(--subtractionColor); border-color: var(--subtractionColor2);">
+        <button onclick="window.location.href='question?question-type={{ questionType }}&level=2&state=new'" class="homeButtons horizontal-centre vertical-centre" style="background-color: var(--subtractionColor); border-color: var(--subtractionColor2);">
             <p style="font-size: 38px; padding-top: 5px;">Level 2</p>
         </button>
+
+        <br>
+        <button onclick="window.location.href='/'">Go Back</button>
     </section>
 
 </body>

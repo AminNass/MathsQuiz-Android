@@ -1,3 +1,4 @@
+import os
 import random
 from typing import Final
 
@@ -28,11 +29,12 @@ class Question:
 
     def __int__(self): return self.answer
 
-    def checkAnswer(self, answer: int):
-        if answer == "":
-            return False
+    def checkAnswer(self, answer: int, passedTimeLimit: bool):
+        if passedTimeLimit:
+            self.userAnswer = int(-1)
+            return True
+        if answer == "": return False
         self.userAnswer = int(answer)
-        print(f"User answer: {answer}")
         return True
 
 
@@ -44,6 +46,8 @@ class QuestionManager:
         self.questions: list[Question] = []
         self.amount: Final[int | None] = amount
         self.currentDifficulty = 1
+        self.timeLimitPassed = False
+        self.activeTimer = None
         print(f"Created Question manager with amount {self.amount}")
         print(f"Questions List: {len(self.questions)}")
 
@@ -52,7 +56,7 @@ class QuestionManager:
 
         if len(self.questions) == self.amount: return None
 
-        if difficulty > 10 or difficulty < 1: raise ValueError("Difficulty must be a non-zero positive integer and no higher than 10.")
+        if difficulty < 1: raise ValueError("Difficulty must be a non-zero positive integer.")
 
         def additionGenerator(nums = None):
             expression = ""
@@ -154,18 +158,88 @@ class QuestionManager:
         elif type == "/":
             expression = divisionGenerator()
             questionWord = "What is the division of"
+        elif type == "mix":
+            randomType = mc.randomType()
+            return self.genQuestion(randomType, level)
         else: raise ValueError("Invalid question type")
 
-        expression = expression[:-2]
+        expression = expression[:-3]
 
         question = Question(f"{questionWord} [{expression}]?")
         self.questions.append(question)
-
+        self.timeLimitPassed = False
         self.timer(level)
         return question
+
+    def updateDifficulty(self, answer):
+        if answer == self.questions[-1].answer:
+            self.currentDifficulty += 1
+            print(f"Updated difficulty: {self.currentDifficulty}")
+
+    def saveToHistory(self):
+        import json
+        import os
+
+        # I left this as a variable other than kinda hardcoding it since I might want to change this later.
+        maxHistoryLimit = 100
+
+        # 1. Determine path for Android vs Desktop
+        if 'ANDROID_ARGUMENT' in os.environ:
+            basePath = os.environ.get('ANDROID_PRIVATE_VOLUME', os.path.expanduser('~'))
+        else:
+            basePath = os.getcwd()
+
+        directory = os.path.join(basePath, "mathQuizSaves")
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        file = os.path.join(directory, "history.json")
+
+        # Load directory if it already exists.
+        existingHistory = []
+        if os.path.exists(file):
+            try:
+                with open(file, 'r') as f:
+                    existingHistory = json.load(f)
+                    # Safety check to ensure the file contains a list
+                    if not isinstance(existingHistory, list):
+                        existingHistory = []
+            except Exception:
+                # If file is empty or corrupted, start fresh
+                existingHistory = []
+
+        # Convert current custom Question objects into dictionaries
+        currentQuestionsData = []
+        for question in self.questions:
+            question_dict = {
+                "question": question.question,
+                "expression": question.expression,
+                "answer": question.answer,
+                "userAnswer": question.userAnswer
+            }
+            currentQuestionsData.append(question_dict)
+
+        # Combine histories.
+        updated_history = currentQuestionsData + existingHistory
+
+        # Slice the list to keep only the maximum allowed newest items
+        updated_history = updated_history[:maxHistoryLimit]
+
+        # Overwrite the file with the clean, updated history list
+        with open(file, 'w') as f:
+            json.dump(updated_history, f, indent=4)
+
 
     def timer(self, level: int):
         from threading import Timer
         if level == 0: return
-        if level == 2: Timer(20, print, args=('Time is up',)).start()
-        if level == 3: Timer(10, print, args=('Time is up',)).start()
+        if level == 1:
+            self.activeTimer = Timer(20, QuestionManager.whenTimeLimitPassed, args=(self,))
+            self.activeTimer.start()
+        if level == 2:
+            self.activeTimer = Timer(10, QuestionManager.whenTimeLimitPassed, args=(self,))
+            self.activeTimer.start()
+
+    def whenTimeLimitPassed(self):
+        self.timeLimitPassed = True
+        print("Time is up")

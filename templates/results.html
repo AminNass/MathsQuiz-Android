@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Results</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script src="{{ url_for('static', filename='js/mathsQuiz.js') }}?v={{ range(1, 99999)|random }}"></script>
+</head>
+<body>
+    <div class="horizontal-centre vertical-centre">
+        <p style="font-size: 32px;">Score</p>
+        <br><br>
+        <p>{{ score }} / 10</p>
+    </div>
+
+    {% for question in questionList %}
+        <p>Question: {{ question.question }}</p>
+        <p>Answer: {{ question.answer }}</p>
+        <p>Your Answer: {{ question.answer }}</p>
+        {% if question.userAnswer == question.answer %}
+            <p>You got it correct</p>
+        {% else %}
+            <p>You got it wrong</p>
+        {% endif %}
+    {% endfor %}
+</body>
+</html>

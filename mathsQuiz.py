@@ -1,5 +1,6 @@
 import random
 from typing import Final
+
 import mathCommon as mc
 import math
 from sympy import sympify
@@ -21,10 +22,19 @@ class Question:
         self.question: Final[str] = qQuestion
         self.expression: Final[str] = expression
         self.answer: Final[int] = int(answer)
+        self.userAnswer: int | None = None
 
     def __str__(self): return str({"Question": self.question, "Expression": self.expression, "Answer": self.answer})
 
     def __int__(self): return self.answer
+
+    def checkAnswer(self, answer: int):
+        if answer == "":
+            return False
+        self.userAnswer = int(answer)
+        print(f"User answer: {answer}")
+        return True
+
 
 class QuestionManager:
 
@@ -33,8 +43,14 @@ class QuestionManager:
 
         self.questions: list[Question] = []
         self.amount: Final[int | None] = amount
+        self.currentDifficulty = 1
+        print(f"Created Question manager with amount {self.amount}")
+        print(f"Questions List: {len(self.questions)}")
 
-    def genQuestion(self, type: str, difficulty: int, level: int):
+    def genQuestion(self, type: str, level: int):
+        difficulty = self.currentDifficulty
+
+        if len(self.questions) == self.amount: return None
 
         if difficulty > 10 or difficulty < 1: raise ValueError("Difficulty must be a non-zero positive integer and no higher than 10.")
 
@@ -129,18 +145,16 @@ class QuestionManager:
         if type == "+":
             expression = additionGenerator()
             questionWord = "What is the sum of"
-        if type == "-":
+        elif type == "-":
             expression = subtractionGenerator()
             questionWord = "What is the difference of"
-        if type == "*":
+        elif type == "*":
             expression = multiplicationGenerator()
             questionWord = "What is the multiple of"
-        if type == "/":
+        elif type == "/":
             expression = divisionGenerator()
             questionWord = "What is the division of"
-
-
-
+        else: raise ValueError("Invalid question type")
 
         expression = expression[:-2]
 
@@ -148,7 +162,6 @@ class QuestionManager:
         self.questions.append(question)
 
         self.timer(level)
-
         return question
 
     def timer(self, level: int):
@@ -156,16 +169,3 @@ class QuestionManager:
         if level == 0: return
         if level == 2: Timer(20, print, args=('Time is up',)).start()
         if level == 3: Timer(10, print, args=('Time is up',)).start()
-
-
-
-q = Question("What is the sum of [5 + 4]")
-p = Question("What is the sum of [8 + 1]")
-print(q)
-print(p)
-print(int(q) + int(p))
-
-manager = QuestionManager(1)
-manager.genQuestion("/", 10, 0)
-
-print(manager.questions[0])

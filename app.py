@@ -28,22 +28,26 @@ def playNativeSound(filename):
         return
 
     try:
-        # 1. Resolve the absolute path where python-for-android extracted the file
+        # 1. Safely locate the extracted asset path
         abs_path = os.path.abspath(f"static/sounds/{filename}")
         print(f"Native audio absolute path: {abs_path}")
 
-        # 2. Bring in Java's FileInputStream to read safely from the local sandbox
         from jnius import autoclass
         FileInputStream = autoclass('java.io.FileInputStream')
 
         mp = MediaPlayer()
 
-        # 3. Open the file descriptor and pass it directly to the engine
+        # 2. Open the file channel
         fis = FileInputStream(abs_path)
         mp.setDataSource(fis.getFD())
-        fis.close()  # Safe to close; Android duplicates the reference internally
 
+        # 3. CRITICAL: Prepare the hardware BEFORE closing the stream handle
         mp.prepare()
+
+        # 4. Now that it's initialized and buffered, it's completely safe to close the stream
+        fis.close()
+
+        # 5. Play the track
         mp.start()
 
         # Automatically release the media player instance from system memory when finished

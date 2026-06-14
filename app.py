@@ -1,66 +1,8 @@
 import threading
 from flask import Flask, render_template, request, jsonify
 import webview
-
+import androidSound
 import mathsQuiz
-
-
-class AndroidMediaPlayer:
-
-    _activePlayers = []
-    _MediaPlayer = None
-
-    @classmethod
-    def _get(cls):
-        if cls._MediaPlayer is None:
-            from jnius import autoclass
-            cls._MediaPlayer = autoclass("android.media.MediaPlayer")
-        return cls._MediaPlayer
-
-    @classmethod
-    def playSound(cls, filename):
-        import os
-        import threading
-        from jnius import autoclass
-
-        try:
-            soundPath = os.path.abspath(
-                os.path.join("static", "sounds", filename)
-            )
-
-            if not os.path.isfile(soundPath):
-                print(f"File not found: {soundPath}")
-                return False
-
-            MediaPlayer = cls._get()
-            player = MediaPlayer()
-
-            player.setDataSource(soundPath)
-
-            # ⚡ still synchronous but stable
-            player.prepare()
-            player.start()
-
-            cls._activePlayers.append(player)
-
-            def cleanup():
-                try:
-                    player.release()
-                except:
-                    pass
-                try:
-                    cls._activePlayers.remove(player)
-                except:
-                    pass
-
-            duration = player.getDuration()
-            threading.Timer(max(duration / 1000, 1), cleanup).start()
-
-            return True
-
-        except Exception as e:
-            print(f"Audio playback failed: {e}")
-            return False
 
 class App:
     def __init__(self):
@@ -72,7 +14,8 @@ class App:
         self.history = {}
 
         # Android Media Player:
-        self.AndroidMediaPlayer = AndroidMediaPlayer()
+        self.AndroidMediaPlayer = androidSound.AndroidMediaPlayer
+        self.AndroidSoundPool = androidSound.AndroidSoundPool
 
         # Register app menus
         self.appMenus()
@@ -81,6 +24,9 @@ class App:
         # Start Flask as a background task (Very important, Android has strict memory management)
         self.flaskServer = threading.Thread(target=self.runFlask, daemon=True)
         self.flaskServer.start()
+
+        # Preload sounds:
+        self.AndroidSoundPool.preload('click', 'click.wav')
 
         # Launch the pywebview window container in the main thread
         self.window = webview.create_window('Maths Quiz', 'http://127.0.0.1:5000/')
@@ -186,6 +132,12 @@ class App:
         def playSound(filename):
             # Directly hand off back-end audio requests straight to the native hardware player
             self.AndroidMediaPlayer.playSound(filename)
+            return jsonify({"status": "played"})
+
+        @self.app.route('/api/sfx/<key>')
+        def playSfx(key):
+            # Directly hand off back-end audio requests straight to the native hardware player
+            self.AndroidSoundPool.play(key)
             return jsonify({"status": "played"})
 
         @self.app.route("/api/submit-answer", methods=["POST"])

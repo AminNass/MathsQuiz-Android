@@ -26,20 +26,19 @@ window.addEventListener('keydown', function (e) {
 
 // Audio handlers:
 
-function playThenNavigate(soundUrl, targetUrl, element) {
-    // Guard against double-tap requests
-    if (document.body.classList.contains('page-is-loading')) {
-        return;
-    }
+async function playThenNavigate(sound, targetUrl, element) {
+    if (document.body.classList.contains('page-is-loading')) return;
 
-    // Lock UI
     document.body.classList.add('page-is-loading');
 
     if (element) {
         element.classList.add('page-exit');
     }
 
-    playSound(soundUrl)
+    try {
+        await playSfx(sound);
+    } catch (e) {}
+
     window.location.href = targetUrl;
 }
 
@@ -90,6 +89,13 @@ function answerPressEnter(event, element, questionType, level) {
 }
 
 // Sound Engine:
+
+function playSfx(key) {
+    if (!key) return Promise.resolve();
+
+    return fetch(`/api/sfx/${key}`)
+        .catch(err => console.error(err));
+}
 
 function playSound(filename) {
     if (!filename) return;

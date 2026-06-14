@@ -27,7 +27,7 @@ window.addEventListener('keydown', function (e) {
 // Audio handlers:
 
 function playThenNavigate(soundUrl, targetUrl, element) {
-    // 1. Guard against double-tap requests
+    // Guard against double-tap requests
     if (document.body.classList.contains('page-is-loading')) {
         return;
     }
@@ -91,10 +91,9 @@ function submitAnswer(questionType, level) {
         })
         .then(data => {
             if (data.status === "success") {
-                playThenNavigate("/static/sounds/click.mp3",`question?question-type=${questionType}&level=${level}&state=current`)
-            } else {
-                document.body.classList.remove('page-is-loading');
+                playThenNavigate("/static/sounds/click.mp3",`/question?question-type=${questionType}&level=${level}&state=current`)
             }
+            document.body.classList.remove('page-is-loading');
         })
 
 }

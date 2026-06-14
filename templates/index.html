@@ -14,30 +14,30 @@
         <p style="padding-left: 5px; text-shadow: 2px 2px 5px darkgrey;">
             Maths Quiz
         </p>
-        <button onclick="window.location.href='history'" class="clean-button vertical-centre"><img src="{{ url_for('static', filename='images/History.png') }}" alt="History" style="width: 45px; height: 45px; padding-right: 5px;"></button>
+        <button onclick="playThenNavigate('{{ url_for('static', filename='sounds/click.mp3') }}', 'history')" class="clean-button vertical-centre"><img src="{{ url_for('static', filename='images/History.png') }}" alt="History" style="width: 45px; height: 45px; padding-right: 5px;"></button>
     </nav>
     <section>
-        <button onclick="window.location.href='level-selector?question-type=addition'" class="homeButtons" style="background-color: var(--additionColor); border-color: var(--additionColor2);">
+        <button onclick="playThenNavigate('{{ url_for('static', filename='sounds/click.mp3') }}', 'level-selector?question-type=addition', this)" class="homeButtons" style="background-color: var(--additionColor); border-color: var(--additionColor2);">
             <p style="font-size: 26px; padding-top: 5px;">Addition</p>
             <img src="{{ url_for('static', filename='images/addition.png') }}" alt="Addition" style="width: 70px; height: 70px">
         </button>
 
-        <button onclick="window.location.href='level-selector?question-type=subtraction'" class="homeButtons" style="background-color: var(--subtractionColor); border-color: var(--subtractionColor2);">
+        <button onclick="playThenNavigate('{{ url_for('static', filename='sounds/click.mp3') }}', 'level-selector?question-type=subtraction', this)" class="homeButtons" style="background-color: var(--subtractionColor); border-color: var(--subtractionColor2);">
             <p style="font-size: 26px; padding-top: 5px;">Subtraction</p>
             <img src="{{ url_for('static', filename='images/Subtraction.png') }}" alt="Subtraction" style="width: 70px; height: 70px">
         </button>
 
-        <button onclick="window.location.href='level-selector?question-type=multiplication'" class="homeButtons" style="background-color: var(--multiplicationColor); border-color: var(--multiplicationColor2);">
+        <button onclick="playThenNavigate('{{ url_for('static', filename='sounds/click.mp3') }}', 'level-selector?question-type=multiplication', this)" class="homeButtons" style="background-color: var(--multiplicationColor); border-color: var(--multiplicationColor2);">
             <p style="font-size: 26px; padding-top: 5px;">Multiplication</p>
             <img src="{{ url_for('static', filename='images/Multiplication.png') }}" alt="Multiplication" style="width: 70px; height: 70px">
         </button>
 
-        <button onclick="window.location.href='level-selector?question-type=division'" class="homeButtons" style="background-color: var(--divisionColor); border-color: var(--divisionColor2);">
+        <button onclick="playThenNavigate('{{ url_for('static', filename='sounds/click.mp3') }}', 'level-selector?question-type=division', this)" class="homeButtons" style="background-color: var(--divisionColor); border-color: var(--divisionColor2);">
             <p style="font-size: 26px; padding-top: 5px;">Division</p>
             <img src="{{ url_for('static', filename='images/Division.png') }}" alt="Division" style="width: 70px; height: 70px">
         </button>
 
-        <button onclick="window.location.href='level-selector?question-type=mix'" class="homeButtons horizontal-centre" style="background-color: var(--mixColor); border-color: var(--mixColor2); flex-direction: column; height: 150px;">
+        <button onclick="playThenNavigate('{{ url_for('static', filename='sounds/click.mp3') }}', 'level-selector?question-type=mix', this)" class="homeButtons horizontal-centre" style="background-color: var(--mixColor); border-color: var(--mixColor2); flex-direction: column; height: 150px;">
             <img src="{{ url_for('static', filename='images/Mix.png') }}" alt="Mix Mode" style="width: 80px; height: 80px">
             <p style="font-size: 30px; padding-top: 5px;">Mix Mode</p>
         </button>

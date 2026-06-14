@@ -1,7 +1,5 @@
-import os
 import random
 from typing import Final
-
 import mathCommon as mc
 import math
 from sympy import sympify
@@ -9,6 +7,15 @@ from sympy import sympify
 class Question:
 
     def __init__(self, question: str):
+        """
+        This class formats a question in a ready format. Stores the full question, the expression, and the answer.
+        Also when checking the answer it will store the user answer as an attribute as well.\n
+        * Question must have e.g "What is the sum of [4 + 6]?"\n
+        Optional but you can add the question wording at the start. This could be anything relevant to the question.
+        Then the expression itself must be surrounded by square brackets. This is so this class knows where the expression is.
+        If you put the '*' or '/' symbols it will automatically replace them with '×' or '÷'.
+        :param question:
+        """
         symbols = {"+":"+","-":"-","*":"×","/":"÷"}
 
         # Removing square brackets from the question.
@@ -183,7 +190,7 @@ class QuestionManager:
         # I left this as a variable other than kinda hardcoding it since I might want to change this later.
         maxHistoryLimit = 100
 
-        # 1. Determine path for Android vs Desktop
+        # Determine path for Android and Development Environment.
         if 'ANDROID_ARGUMENT' in os.environ:
             basePath = os.environ.get('ANDROID_PRIVATE_VOLUME', os.path.expanduser('~'))
         else:
@@ -219,13 +226,13 @@ class QuestionManager:
             }
             currentQuestionsData.append(question_dict)
 
-        # Combine histories.
+        # Combine existing with current histories.
         updated_history = currentQuestionsData + existingHistory
 
-        # Slice the list to keep only the maximum allowed newest items
+        # Slice the list to keep only the maximum allowed newest items.
         updated_history = updated_history[:maxHistoryLimit]
 
-        # Overwrite the file with the clean, updated history list
+        # Overwrite the file with the clean, updated history list.
         with open(file, 'w') as f:
             json.dump(updated_history, f, indent=4)
 
@@ -234,10 +241,10 @@ class QuestionManager:
         from threading import Timer
         if level == 0: return
         if level == 1:
-            self.activeTimer = Timer(20, QuestionManager.whenTimeLimitPassed, args=(self,))
+            self.activeTimer = Timer(21, QuestionManager.whenTimeLimitPassed, args=(self,))
             self.activeTimer.start()
         if level == 2:
-            self.activeTimer = Timer(10, QuestionManager.whenTimeLimitPassed, args=(self,))
+            self.activeTimer = Timer(11, QuestionManager.whenTimeLimitPassed, args=(self,))
             self.activeTimer.start()
 
     def whenTimeLimitPassed(self):

@@ -1,3 +1,3 @@
 import app
 
-app = app.App()
+appQuiz = app.App()

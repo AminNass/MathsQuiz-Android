@@ -11,9 +11,9 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('timer').innerText = "∞";
         return;
     } else if (level === '1') {
-        timeRemaining = 20;
+        timeRemaining = 21;
     } else if (level === '2') {
-        timeRemaining = 10;
+        timeRemaining = 11;
     }
 
     // Get the timer element that shows the time.

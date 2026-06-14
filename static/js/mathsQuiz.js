@@ -24,6 +24,29 @@ window.addEventListener('keydown', function (e) {
     }
 });
 
+// Audio handlers:
+
+function playThenNavigate(soundUrl, targetUrl, element) {
+    const audio = new Audio(soundUrl);
+
+    if (element) {
+      element.classList.add('page-exit');
+    }
+
+    // Trigger the page shift the exact millisecond the audio finishes playing
+    audio.onended = function() {
+        window.location.href = targetUrl;
+    };
+
+    // If the sound fails to load, don't freeze the app!
+    // Force transition anyway after 200 milliseconds.
+    setTimeout(() => {
+        window.location.href = targetUrl;
+    }, 200);
+
+    audio.play();
+}
+
 // Question Page Functions
 
 function submitAnswer(questionType, level) {
@@ -47,7 +70,7 @@ function submitAnswer(questionType, level) {
         })
         .then(data => {
             if (data.status === "success") {
-                window.location.href=`question?question-type=${questionType}&level=${level}&state=current`;
+                playThenNavigate("/static/sounds/click.mp3",`question?question-type=${questionType}&level=${level}&state=current`)
             } else {
                 console.log("Nothing was entered");
             }

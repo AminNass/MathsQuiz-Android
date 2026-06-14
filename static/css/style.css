@@ -67,13 +67,16 @@ section {
     border-width: 5px;
     border-color: black;
 
-
+    transition: filter 0.3s, width 0.5s, margin 0.5s;
     cursor: pointer;
 }
 
 .homeButtons:hover {
     filter: brightness(0.9);
-    transition: filter 0.3s;
+    width: 244px;
+    height: 94px;
+    margin: 3px 3px 3px 3px;
+    border-radius: 30px;
 }
 
 button {
@@ -92,11 +95,12 @@ button {
     cursor: pointer;
 
     background-color: floralwhite;
+    transition: filter 0.3s, border-radius 1s;
 }
 
 button:hover {
     filter: brightness(0.9);
-    transition: filter 0.3s;
+    border-radius: 20px;
 }
 
 input {
@@ -148,13 +152,14 @@ input {
 
     cursor: pointer;
     outline: none;
+    transition: filter 0.3s;
 
     -webkit-appearance: none;
     appearance: none;
 }
 .clean-button:hover {
     filter: brightness(0.9);
-    transition: filter 0.3s;
+
 }
 
 /* Embedded features */
@@ -168,7 +173,11 @@ input {
     box-sizing: border-box;
 
     /* Native mobile performance optimization */
-    -webkit-overflow-scrolling: touch; /* Forces fluid momentum scrolling in mobile WebViews */
+    -webkit-overflow-scrolling: touch;
+}
+
+.page-exit {
+    animation: fadeOut 1s ease-in-out forwards !important;
 }
 
 /* Default Elements Settings */
@@ -183,6 +192,9 @@ html, body {
     height: 100vh;
     overflow: hidden;
 
+    animation: fadeIn 0.6s ease-out forwards;
+    will-change: opacity, transform;
+
     /* Prevents swipe-to-navigate history movements and overscroll bounce patterns */
     overscroll-behavior-x: none;
 }
@@ -193,4 +205,28 @@ p {
 
     margin: 0;
     padding: 0;
+}
+
+/* Animations */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.85);
+    }
 }

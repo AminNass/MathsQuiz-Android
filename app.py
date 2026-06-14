@@ -1,8 +1,6 @@
 import threading
 from flask import Flask, render_template, request, jsonify, json
 import webview
-from sympy.physics.units import current
-
 import mathsQuiz
 
 
@@ -10,6 +8,10 @@ class App:
     def __init__(self):
         # Create Flask instance
         self.app = Flask(__name__)
+
+        # Session Data:
+        self.currentManager: mathsQuiz.QuestionManager | None = None
+        self.history = {}
 
         # Register app menus
         self.appMenus()
@@ -19,25 +21,27 @@ class App:
         self.flaskServer = threading.Thread(target=self.runFlask, daemon=True)
         self.flaskServer.start()
 
-        # 4. Launch the pywebview window container in the main thread
-        self.window = webview.create_window('Maths Quiz', 'http://127.0.0.1:5000/', width=390,height=844,resizable=False)
+        # Launch the pywebview window container in the main thread
+        self.window = webview.create_window('Maths Quiz', 'http://127.0.0.1:5000/')
         self.runWindow()
 
-        self.currentManager: mathsQuiz.QuestionManager | None = None
-        self.history = {}
-
     # Run window
-    @staticmethod
-    def runWindow(): webview.start()
+    def runWindow(self):
+        webview.start()
 
     # Launch flask server.
-    def runFlask(self): self.app.run(host='127.0.0.1', port=5000, debug=False)
+    def runFlask(self):
+        self.app.run(host='127.0.0.1', port=5000, debug=False,use_reloader=False)
 
 
     def appMenus(self):
         # Now self.app safely exists and can be targeted by decorators
         @self.app.route('/')
         def index():
+            if self.currentManager is not None:
+                if self.currentManager.activeTimer is not None:
+                    self.currentManager.activeTimer.cancel()
+                self.currentManager = None
             return render_template("index.html")
 
         @self.app.route('/level-selector')

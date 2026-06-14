@@ -3,9 +3,14 @@ from flask import Flask, render_template, request, jsonify
 import webview
 import androidSound
 import mathsQuiz
+import queue
+import time
 
 class App:
     def __init__(self):
+        self.soundQueue = queue.Queue(maxsize=50)
+        self._soundWorkerRunning = True
+
         # Create Flask instance
         self.app = Flask(__name__)
 
@@ -28,9 +33,29 @@ class App:
         # Preload sounds:
         self.AndroidSoundPool.preload('click', 'click.wav')
 
+        self.soundQueue = queue.Queue(maxsize=50)
+        self._soundWorkerRunning = True
+        self.soundWorker = threading.Thread(target=self._sound_worker, daemon=True)
+        self.soundWorker.start()
+
         # Launch the pywebview window container in the main thread
         self.window = webview.create_window('Maths Quiz', 'http://127.0.0.1:5000/')
         self.runWindow()
+
+    def _sound_worker(self):
+        while self._soundWorkerRunning:
+            try:
+                key = self.soundQueue.get()
+
+                # simple safety delay (prevents spam explosions)
+                time.sleep(0.005)
+
+                self.AndroidSoundPool.play(key)
+
+                self.soundQueue.task_done()
+
+            except Exception as e:
+                print("Sound worker error:", e)
 
     # Run window
     def runWindow(self):
@@ -137,7 +162,10 @@ class App:
         @self.app.route('/api/sfx/<key>')
         def playSfx(key):
             # Directly hand off back-end audio requests straight to the native hardware player
-            self.AndroidSoundPool.play(key)
+            try:
+                self.soundQueue.put_nowait(key)
+            except queue.Full:
+                pass
             return jsonify({"status": "played"})
 
         @self.app.route("/api/submit-answer", methods=["POST"])

@@ -27,6 +27,11 @@ window.addEventListener('keydown', function (e) {
 // Audio handlers:
 
 function playThenNavigate(soundUrl, targetUrl, element) {
+    if (document.body.classList.contains('page-is-loading')) {
+        return
+    }
+
+    document.body.classList.add('page-is-loading');
     const audio = new Audio(soundUrl);
 
     if (element) {
@@ -50,7 +55,12 @@ function playThenNavigate(soundUrl, targetUrl, element) {
 // Question Page Functions
 
 function submitAnswer(questionType, level) {
+    // Optimization, to stop duplicate requests.
+    if (document.body.classList.contains('page-is-loading')) {
+        return
+    }
 
+    document.body.classList.add('page-is-loading');
     const inputAnswerElement = document.getElementById("answer");
 
     const data = {
@@ -73,6 +83,7 @@ function submitAnswer(questionType, level) {
                 playThenNavigate("/static/sounds/click.mp3",`question?question-type=${questionType}&level=${level}&state=current`)
             } else {
                 console.log("Nothing was entered");
+                document.body.classList.remove('page-is-loading');
             }
         })
 

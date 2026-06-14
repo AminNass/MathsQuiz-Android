@@ -11,7 +11,7 @@ class AndroidMediaPlayer:
     _MediaPlayer = None
 
     @classmethod
-    def _getMediaPlayerClass(cls):
+    def _get(cls):
         if cls._MediaPlayer is None:
             from jnius import autoclass
             cls._MediaPlayer = autoclass("android.media.MediaPlayer")
@@ -20,10 +20,10 @@ class AndroidMediaPlayer:
     @classmethod
     def playSound(cls, filename):
         import os
+        import threading
+        from jnius import autoclass
 
         try:
-            from jnius import autoclass
-
             soundPath = os.path.abspath(
                 os.path.join("static", "sounds", filename)
             )
@@ -32,26 +32,14 @@ class AndroidMediaPlayer:
                 print(f"File not found: {soundPath}")
                 return False
 
-            MediaPlayer = cls._getMediaPlayerClass()
-
+            MediaPlayer = cls._get()
             player = MediaPlayer()
 
             player.setDataSource(soundPath)
 
-            # 🔥 non-blocking prepare (much faster)
-            player.prepareAsync()
-
-            def startWhenReady():
-                try:
-                    player.start()
-                except Exception as e:
-                    print("Start failed:", e)
-
-            player.setOnPreparedListener(
-                autoclass("android.media.MediaPlayer$OnPreparedListener")(
-                    lambda mp: startWhenReady()
-                )
-            )
+            # ⚡ still synchronous but stable
+            player.prepare()
+            player.start()
 
             cls._activePlayers.append(player)
 
@@ -65,9 +53,8 @@ class AndroidMediaPlayer:
                 except:
                     pass
 
-            # fallback cleanup (still needed)
-            import threading
-            threading.Timer(5, cleanup).start()
+            duration = player.getDuration()
+            threading.Timer(max(duration / 1000, 1), cleanup).start()
 
             return True
 

@@ -93,8 +93,9 @@ function submitAnswer(questionType, level) {
             if (data.status === "success") {
                 document.body.classList.remove('page-is-loading');
                 playThenNavigate("/static/sounds/click.mp3",`/question?question-type=${questionType}&level=${level}&state=current`)
+            } else {
+               document.body.classList.remove('page-is-loading');
             }
-            document.body.classList.remove('page-is-loading');
         })
 
 }
@@ -103,9 +104,6 @@ function answerPressEnter(event, element, questionType, level) {
     // Check the user pressed enter
     if (event.key === 'Enter') {
         event.preventDefault();
-
-        // Get the typed text
-        let inputValue = element.value;
 
         submitAnswer(questionType, level);
     }

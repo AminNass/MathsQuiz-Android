@@ -25,9 +25,10 @@ def addAddition(expression, difficulty):
     maxNum = round(clamp(math.exp(2.1) * difficulty / 3, 2, 12))
 
 def getHistory():
-    if 'ANDROID_ARGUMENT' in os.environ:
-        basePath = os.environ.get('ANDROID_PRIVATE_VOLUME', os.path.expanduser('~'))
+    if 'ANDROID_PRIVATE_VOLUME' in os.environ:
+        basePath = os.environ['ANDROID_PRIVATE_VOLUME']
     else:
+        # Falls back for dev env
         basePath = os.getcwd()
 
     filePath = os.path.join(basePath, "mathQuizSaves", "history.json")

@@ -39,28 +39,8 @@ function playThenNavigate(soundUrl, targetUrl, element) {
         element.classList.add('page-exit');
     }
 
-    const audio = new Audio(soundUrl);
-    let hasNavigated = false;
-
-    // Unified navigation trigger to prevent double execution
-    function triggerNavigation() {
-        if (!hasNavigated) {
-            hasNavigated = true;
-            window.location.href = targetUrl;
-        }
-    }
-
-    // Trigger when the audio finishes playing completely
-    audio.onended = triggerNavigation;
-
-    // only if the audio hangs or takes too long.
-    const fallbackTimeout = setTimeout(triggerNavigation, 1500);
-
-    // C. Fire audio playback
-    audio.play().catch(error => {
-        clearTimeout(fallbackTimeout);
-        triggerNavigation();
-    });
+    playSound(soundUrl)
+    window.location.href = targetUrl;
 }
 
 // Question Page Functions
@@ -108,3 +88,26 @@ function answerPressEnter(event, element, questionType, level) {
         submitAnswer(questionType, level);
     }
 }
+
+// Sound Engine:
+
+function playSound(filename) {
+    if (!filename) return;
+
+    // Isolate just the filename.
+    const cleanName = filename.split('/').pop();
+
+    // Call the background Flask server to trigger Android's native MediaPlayer.
+    fetch(`/api/play/${cleanName}`)
+        .catch(err => console.error("Native sound playback request failed:", err));
+}
+
+// Automatically check for and trigger page-load sound requirements once the DOM mounts.
+document.addEventListener('DOMContentLoaded', function() {
+    const audioMarker = document.getElementById('page-audio-track');
+
+    if (audioMarker) {
+        const soundUrl = audioMarker.getAttribute('data-url');
+        playSound(soundUrl);
+    }
+});

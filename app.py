@@ -2,21 +2,28 @@ import os
 import threading
 from flask import Flask, render_template, request, jsonify, json
 import webview
-from jnius import autoclass
 import mathsQuiz
 
 
 # NATIVE ANDROID MULTIMEDIA ENGINE
-if 'ANDROID_PRIVATE_VOLUME' in os.environ:
+MediaPlayer = None
+Context = None
+try:
+    # Attempt to load the native Android Java hooks directly
+    from jnius import autoclass
     MediaPlayer = autoclass('android.media.MediaPlayer')
     Context = autoclass('org.kivy.android.PythonActivity').mActivity
-else:
+    print("Android Native Audio Engine initialized successfully.")
+except Exception as e:
+    # If this fails, we are definitely testing locally on a PC
     MediaPlayer = None
+    Context = None
+    print(f"Jnius or Android classes not found. Defaulting to PC Mode. (Error: {e})")
 
 
 def playNativeSound(filename):
     """Plays audio directly via Android system hardware instead of HTTP streaming."""
-    if MediaPlayer is None:
+    if MediaPlayer is None or Context is None:
         print(f"[PC Emulator Mode] Playing sound: {filename}")
         return
 

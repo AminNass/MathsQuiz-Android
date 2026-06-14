@@ -1,6 +1,5 @@
-import os
 import threading
-from flask import Flask, render_template, request, jsonify, json
+from flask import Flask, render_template, request, jsonify
 import webview
 import mathsQuiz
 
@@ -20,45 +19,56 @@ except Exception as e:
     Context = None
     print(f"Jnius or Android classes not found. Defaulting to PC Mode. (Error: {e})")
 
+
 def playNativeSound(filename):
-    """Plays audio directly via Android system hardware instead of HTTP streaming."""
+    """Plays audio via Android hardware by staging assets in a media-accessible directory."""
     if MediaPlayer is None or Context is None:
         print(f"[PC Emulator Mode] Playing sound: {filename}")
         return
 
     try:
-        # 1. Target the absolute file path
-        abs_path = os.path.abspath(f"static/sounds/{filename}")
-        print(f"Native audio absolute path: {abs_path}")
-
-        if not os.path.exists(abs_path):
-            print(f"Native audio error: File not found at {abs_path}")
+        import os
+        import shutil
+        # 1. Define the internal path where Buildozer extracts files
+        internal_path = os.path.abspath(f"static/sounds/{filename}")
+        if not os.path.exists(internal_path):
+            print(f"Native audio error: Source asset missing at {internal_path}")
             return
 
-        # 2. Calculate the exact file size in bytes
-        file_length = os.path.getsize(abs_path)
+        # 2. Get the Android External Cache Directory (accessible by system mediaserver)
+        java_cache_dir = Context.getExternalCacheDir()
+        if java_cache_dir is None:
+            print("Native audio error: External cache storage is unavailable.")
+            return
+
+        # 3. Create the target destination path in the external cache
+        external_cache_root = java_cache_dir.getAbsolutePath()
+        target_path = os.path.join(external_cache_root, filename)
+
+        # 4. Securely copy the file over if it isn't already staged there
+        if not os.path.exists(target_path) or os.path.getsize(target_path) != os.path.getsize(internal_path):
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            shutil.copy2(internal_path, target_path)
+            print(f"Staged audio file in external cache: {target_path}")
+
+        # 5. Measure size and fetch Java stream handlers
+        file_length = os.path.getsize(target_path)
 
         from jnius import autoclass
         FileInputStream = autoclass('java.io.FileInputStream')
 
         mp = MediaPlayer()
+        fis = FileInputStream(target_path)
 
-        # 3. Open the file stream handle safely within your app process
-        fis = FileInputStream(abs_path)
-
-        # 4. FIX: Explicitly pass the file descriptor, start offset (0), and length
+        # 6. Pass explicit data bounds to the media player
         mp.setDataSource(fis.getFD(), 0, file_length)
-
-        # 5. Prepare and cache the hardware buffers
         mp.prepare()
+        fis.close()  # Safe to close now that the player has verified the stream bounds
 
-        # 6. Stream is securely initialized; safe to close local file stream copy
-        fis.close()
-
-        # 7. Fire the sound effect
+        # 7. Fire the audio hardware
         mp.start()
 
-        # Automatic memory cleanup after the click finishes playing
+        # Clean memory footprints immediately when playback terminates
         mp.setOnCompletionListener(lambda player: player.release())
 
     except Exception as e:

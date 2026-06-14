@@ -58,6 +58,7 @@ class App:
 
     # Run window
     def runWindow(self):
+        threading.Thread(target=self._loop, daemon=True).start()
         webview.start()
 
     # Launch flask server.

@@ -3,66 +3,47 @@ from flask import Flask, render_template, request, jsonify
 import webview
 import mathsQuiz
 
+import threading
 import os
 
-_active_audio_resources = []
-
-
-import os
-
-# Keep references alive while sounds are playing
 _active_players = []
 
-
-def play_native_sound(filename: str):
-    """
-    Play a sound effect on Android.
-
-    Supports WAV and MP3.
-    Safe to call from Flask routes.
-    Falls back gracefully on desktop.
-    """
-
+def play_native_sound(filename):
     try:
         sound_path = os.path.abspath(
             os.path.join("static", "sounds", filename)
         )
 
-        print("\n=== AUDIO DEBUG ===")
-        print(f"File: {filename}")
-        print(f"Path: {sound_path}")
-
         if not os.path.isfile(sound_path):
-            print("ERROR: File not found")
+            print(f"File not found: {sound_path}")
             return False
-
-        print(f"Size: {os.path.getsize(sound_path)} bytes")
 
         from jnius import autoclass
 
         MediaPlayer = autoclass("android.media.MediaPlayer")
 
         player = MediaPlayer()
-
-        # Let Android open the file directly
         player.setDataSource(sound_path)
-
-        print("Preparing...")
         player.prepare()
-
-        print("Starting playback...")
         player.start()
 
-        # Keep alive while playing
         _active_players.append(player)
 
-        print("Sound started successfully")
+        duration = player.getDuration()
 
-        return True
+        def cleanup():
+            try:
+                player.release()
+            except:
+                pass
 
-    except ImportError:
-        # Running on PC
-        print(f"[Desktop Mode] Would play: {filename}")
+            try:
+                _active_players.remove(player)
+            except:
+                pass
+
+        threading.Timer(max(duration / 1000, 1), cleanup).start()
+
         return True
 
     except Exception as e:

@@ -1,24 +1,24 @@
-import os
 import threading
 from flask import Flask, render_template, request, jsonify
 import webview
 import mathsQuiz
 
-# A clean rolling pool to manage active playback and prevent memory leaks on Android
-_active_audio_resources = []
+import os
 
-# A rolling pool to keep MediaPlayer instances alive during playback and prevent memory leaks
 _active_audio_resources = []
-
 
 def play_native_sound(filename):
     """
-    Plays user interface sound effects using Android's native MediaPlayer.
-    Uses explicit byte bounding to bypass sandbox process security restrictions.
+    Plays a sound using Android MediaPlayer.
+
+    Automatically releases resources when playback finishes and
+    falls back gracefully when running on desktop.
     """
-    sound_path = os.path.abspath(f"static/sounds/{filename}")
-    if not os.path.exists(sound_path):
-        print(f"--- Audio Error: File missing at {sound_path} ---")
+
+    sound_path = os.path.abspath(os.path.join("static", "sounds", filename))
+
+    if not os.path.isfile(sound_path):
+        print(f"Audio file not found: {sound_path}")
         return
 
     try:
@@ -28,40 +28,49 @@ def play_native_sound(filename):
         FileInputStream = autoclass('java.io.FileInputStream')
         File = autoclass('java.io.File')
 
-        mp = MediaPlayer()
         file_obj = File(sound_path)
 
-        # Open direct low-level stream access to the sound file
+        mp = MediaPlayer()
+
         fis = FileInputStream(file_obj)
-        fd = fis.getFD()
-        length = file_obj.length()
 
-        # CRITICAL FIX: Explicitly pass the descriptor, offset (0), and file length.
-        # This permits Android's background media server to safely read our private app files.
-        mp.setDataSource(fd, 0, length)
+        try:
+            fd = fis.getFD()
+            length = file_obj.length()
 
-        # Safe to close immediately after setting data source as MediaPlayer duplicates the descriptor
-        fis.close()
+            mp.setDataSource(fd, 0, length)
+            mp.prepare()
 
-        mp.prepare()
-        mp.start()
+        finally:
+            fis.close()
 
-        # Track player references to protect them from aggressive garbage collection mid-play
-        _active_audio_resources.append(mp)
-
-        # Clear oldest instances periodically to recycle system audio channels
-        if len(_active_audio_resources) > 10:
-            old_mp = _active_audio_resources.pop(0)
+        def cleanup(player):
             try:
-                old_mp.release()
+                player.release()
             except Exception:
                 pass
 
+            try:
+                _active_audio_resources.remove(player)
+            except ValueError:
+                pass
+
+        # Keep reference alive while playing
+        _active_audio_resources.append(mp)
+
+        mp.setOnCompletionListener(
+            lambda player: cleanup(player)
+        )
+
+        mp.start()
+
+        print(f"Playing sound: {filename}")
+
     except ImportError:
-        # Safe fallback for seamless local testing on desktop environments
-        print(f"[PC Environment Mode] Audio Triggered: {filename}")
+        print(f"[Desktop Mode] Would play: {filename}")
+
     except Exception as e:
-        print(f"Native audio sub-system crash: {e}")
+        print(f"Audio playback failed: {e}")
 
 class App:
     def __init__(self):

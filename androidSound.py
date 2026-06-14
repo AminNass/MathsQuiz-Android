@@ -58,7 +58,8 @@ class AndroidMediaPlayer:
 import threading
 import os
 import time
-from jnius import autoclass, attach_thread_to_jvm
+from jnius import autoclass
+
 
 class AndroidSoundPool:
 
@@ -71,22 +72,6 @@ class AndroidSoundPool:
     _lastPlay = 0.0
     _minInterval = 0.05
 
-    _jvm_attached = False
-
-    # -------------------------
-    # JVM SAFETY
-    # -------------------------
-    @classmethod
-    def _ensure_jvm(cls):
-        if cls._jvm_attached:
-            return
-
-        try:
-            attach_thread_to_jvm()
-            cls._jvm_attached = True
-        except Exception as e:
-            print("JVM attach skipped/failed:", e)
-
     # -------------------------
     # INIT SOUND POOL
     # -------------------------
@@ -95,8 +80,6 @@ class AndroidSoundPool:
         with cls._lock:
             if cls._SoundPool is not None:
                 return
-
-            cls._ensure_jvm()
 
             SoundPoolBuilder = autoclass("android.media.SoundPool$Builder")
             AudioAttributesBuilder = autoclass("android.media.AudioAttributes$Builder")
@@ -111,7 +94,7 @@ class AndroidSoundPool:
 
             cls._soundPool = (
                 SoundPoolBuilder()
-                .setMaxStreams(4)  # slightly safer than 2 for spam clicks
+                .setMaxStreams(4)
                 .setAudioAttributes(attrs)
                 .build()
             )
@@ -124,7 +107,6 @@ class AndroidSoundPool:
     @classmethod
     def preload(cls, key, filename):
         cls._init()
-        cls._ensure_jvm()
 
         base_path = os.path.abspath(os.path.join("static", "sounds"))
         filepath = os.path.join(base_path, filename)
@@ -147,21 +129,20 @@ class AndroidSoundPool:
     @classmethod
     def play(cls, key, volume=1.0):
         cls._init()
-        cls._ensure_jvm()
 
         now = time.time()
 
-        # fast fail rate limit
         with cls._lock:
+            # rate limit
             if now - cls._lastPlay < cls._minInterval:
                 return False
 
-            if key not in cls._sounds:
+            soundID = cls._sounds.get(key)
+            if soundID is None:
                 print(f"Sound not loaded: {key}")
                 return False
 
             cls._lastPlay = now
-            soundID = cls._sounds[key]
 
         try:
             streamID = cls._soundPool.play(
@@ -179,5 +160,5 @@ class AndroidSoundPool:
             return streamID
 
         except Exception as e:
-            print("SoundPool crash prevented:", e)
+            print("SoundPool error:", e)
             return False

@@ -8,9 +8,6 @@ import time
 
 class App:
     def __init__(self):
-        self.soundQueue = queue.Queue(maxsize=50)
-        self._soundWorkerRunning = True
-
         # Create Flask instance
         self.app = Flask(__name__)
 
@@ -47,8 +44,8 @@ class App:
             try:
                 key = self.soundQueue.get()
 
-                # simple safety delay (prevents spam explosions)
-                time.sleep(0.005)
+                if key is None:
+                    break
 
                 self.AndroidSoundPool.play(key)
 

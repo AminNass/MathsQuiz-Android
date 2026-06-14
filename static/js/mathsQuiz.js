@@ -91,6 +91,7 @@ function submitAnswer(questionType, level) {
         })
         .then(data => {
             if (data.status === "success") {
+                document.body.classList.remove('page-is-loading');
                 playThenNavigate("/static/sounds/click.mp3",`/question?question-type=${questionType}&level=${level}&state=current`)
             }
             document.body.classList.remove('page-is-loading');

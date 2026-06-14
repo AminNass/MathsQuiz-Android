@@ -16,8 +16,6 @@ document.addEventListener("DOMContentLoaded", () => {
         timeRemaining = 11;
     }
 
-    document.body.classList.remove('page-is-loading');
-
     // Get the timer element that shows the time.
     const timerElement = document.getElementById('timer');
 

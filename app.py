@@ -140,8 +140,10 @@ class App:
                 self.currentManager.saveToHistory()
                 if self.currentManager.activeTimer is not None:
                     self.currentManager.activeTimer.cancel()
+                    print("Returned request, success.")
                 return jsonify({"status": "success", "message": "Answer submitted successfully"})
 
+            print("Returned request, error.")
             return jsonify({"status": "error", "message": "Answer submitted unsuccessfully"})
 
 

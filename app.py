@@ -28,13 +28,21 @@ def playNativeSound(filename):
         return
 
     try:
-        # Targets the packed static asset directory directly inside the APK
-        asset_path = f"app/static/sounds/{filename}"
+        # 1. Resolve the absolute path where python-for-android extracted the file
+        abs_path = os.path.abspath(f"static/sounds/{filename}")
+        print(f"Native audio absolute path: {abs_path}")
+
+        # 2. Bring in Java's FileInputStream to read safely from the local sandbox
+        from jnius import autoclass
+        FileInputStream = autoclass('java.io.FileInputStream')
 
         mp = MediaPlayer()
-        afd = Context.getAssets().openFd(asset_path)
-        mp.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength())
-        afd.close()
+
+        # 3. Open the file descriptor and pass it directly to the engine
+        fis = FileInputStream(abs_path)
+        mp.setDataSource(fis.getFD())
+        fis.close()  # Safe to close; Android duplicates the reference internally
+
         mp.prepare()
         mp.start()
 

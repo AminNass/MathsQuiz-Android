@@ -191,9 +191,10 @@ class QuestionManager:
         maxHistoryLimit = 100
 
         # Determine path for Android and Development Environment.
-        if 'ANDROID_ARGUMENT' in os.environ:
-            basePath = os.environ.get('ANDROID_PRIVATE_VOLUME', os.path.expanduser('~'))
+        if 'ANDROID_PRIVATE_VOLUME' in os.environ:
+            basePath = os.environ['ANDROID_PRIVATE_VOLUME']
         else:
+            # Falls back for dev env
             basePath = os.getcwd()
 
         directory = os.path.join(basePath, "mathQuizSaves")

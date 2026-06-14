@@ -1,19 +1,29 @@
 import threading
 from flask import Flask, render_template, request, jsonify
 import webview
+
 import mathsQuiz
 
 
 class AndroidMediaPlayer:
-    
+
     _activePlayers = []
+    _MediaPlayer = None
+
+    @classmethod
+    def _getMediaPlayerClass(cls):
+        if cls._MediaPlayer is None:
+            from jnius import autoclass
+            cls._MediaPlayer = autoclass("android.media.MediaPlayer")
+        return cls._MediaPlayer
 
     @classmethod
     def playSound(cls, filename):
-        import threading
         import os
 
         try:
+            from jnius import autoclass
+
             soundPath = os.path.abspath(
                 os.path.join("static", "sounds", filename)
             )
@@ -22,31 +32,42 @@ class AndroidMediaPlayer:
                 print(f"File not found: {soundPath}")
                 return False
 
-            from jnius import autoclass
-
-            MediaPlayer = autoclass("android.media.MediaPlayer")
+            MediaPlayer = cls._getMediaPlayerClass()
 
             player = MediaPlayer()
+
             player.setDataSource(soundPath)
-            player.prepare()
-            player.start()
+
+            # 🔥 non-blocking prepare (much faster)
+            player.prepareAsync()
+
+            def startWhenReady():
+                try:
+                    player.start()
+                except Exception as e:
+                    print("Start failed:", e)
+
+            player.setOnPreparedListener(
+                autoclass("android.media.MediaPlayer$OnPreparedListener")(
+                    lambda mp: startWhenReady()
+                )
+            )
 
             cls._activePlayers.append(player)
-
-            duration = player.getDuration()
 
             def cleanup():
                 try:
                     player.release()
                 except:
                     pass
-
                 try:
                     cls._activePlayers.remove(player)
                 except:
                     pass
 
-            threading.Timer(max(duration / 1000, 1), cleanup).start()
+            # fallback cleanup (still needed)
+            import threading
+            threading.Timer(5, cleanup).start()
 
             return True
 

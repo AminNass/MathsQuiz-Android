@@ -1,92 +1,58 @@
+import os
 import threading
 from flask import Flask, render_template, request, jsonify
 import webview
 import mathsQuiz
 
-
-# NATIVE ANDROID MULTIMEDIA ENGINE
-MediaPlayer = None
-Context = None
-try:
-    # Attempt to load the native Android Java hooks directly
-    from jnius import autoclass
-    MediaPlayer = autoclass('android.media.MediaPlayer')
-    Context = autoclass('org.kivy.android.PythonActivity').mActivity
-    print("Android Native Audio Engine initialized successfully.")
-except Exception as e:
-    # If this fails, we are definitely testing locally on a PC
-    MediaPlayer = None
-    Context = None
-    print(f"Jnius or Android classes not found. Defaulting to PC Mode. (Error: {e})")
-
-import os
-from jnius import autoclass
-
-# CRITICAL: Keeps a strong reference alive in memory so Python's Garbage
-# Collector does not destroy the player object while Android is preparing it.
-_active_audio_handles = []
+# Global list to protect active players from Python garbage collection mid-playback
+_active_audio_players = []
 
 
-def playNativeSound(filename):
-    """Plays UI audio assets flawlessly using explicit IPC-safe ParcelFileDescriptors."""
-    if MediaPlayer is None or Context is None:
-        print(f"[PC Emulator Mode] Playing sound: {filename}")
+def play_native_sound(filename):
+    """
+    Plays audio effects using native Android MediaPlayer via raw File Descriptors.
+    Bypasses Android storage sandboxing completely and drops back to console logging on PC.
+    """
+    sound_path = os.path.abspath(f"static/sounds/{filename}")
+    if not os.path.exists(sound_path):
+        print(f"--- Audio Error: File missing at {sound_path} ---")
         return
 
     try:
-        # 1. Target the local internal file path
-        abs_path = os.path.abspath(f"static/sounds/{filename}")
-        if not os.path.exists(abs_path):
-            print(f"Native audio error: Target file missing at {abs_path}")
-            return
+        from jnius import autoclass
 
-        # 2. Import core Android OS components
-        ParcelFileDescriptor = autoclass('android.os.ParcelFileDescriptor')
-        JavaFile = autoclass('java.io.File')
-        MediaPlayerClass = autoclass('android.media.MediaPlayer')
+        MediaPlayer = autoclass('android.media.MediaPlayer')
+        FileInputStream = autoclass('java.io.FileInputStream')
 
-        # 3. Wrap file in an IPC-safe Parcel descriptor
-        j_file = JavaFile(abs_path)
-        pfd = ParcelFileDescriptor.open(j_file, ParcelFileDescriptor.MODE_READ_ONLY)
+        mp = MediaPlayer()
+        fis = FileInputStream(sound_path)
+        fd = fis.getFD()
 
-        # 4. Measure size metrics
-        file_length = os.path.getsize(abs_path)
-
-        # 5. Initialize the media player engine instance
-        mp = MediaPlayerClass()
-
-        # 6. Pass the duplicated native descriptor handle with accurate bounds
-        mp.setDataSource(pfd.getFileDescriptor(), 0, file_length)
-
-        # 7. Warm up audio hardware streams synchronously
+        # Passing raw file descriptors avoids Android OS path security policy restrictions
+        mp.setDataSource(fd, 0, os.path.getsize(sound_path))
         mp.prepare()
 
-        # Protect the active components from Python's memory cleanup cycles
-        _active_audio_handles.append((mp, pfd))
-
-        # 8. Fire the sound effect
+        # Keep track of instance so Python memory management doesn't delete it while playing
+        _active_audio_players.append(mp)
         mp.start()
 
-        # 9. Clean up all system resource handles when the sound finishes playing
-        def on_playback_complete(player_instance):
+        # Clean up system handles when sound effect concludes
+        def on_complete(player_instance):
             try:
                 player_instance.release()
-                pfd.close()
+                if player_instance in _active_audio_players:
+                    _active_audio_players.remove(player_instance)
+            except Exception as ce:
+                print(f"Audio memory release exception: {ce}")
 
-                # Locate and clear this handle from active memory tracking
-                for item in _active_audio_handles:
-                    if item[0] == player_instance:
-                        _active_audio_handles.remove(item)
-                        break
-                print(f"Successfully released native audio resources for {filename}")
-            except Exception as cleanup_error:
-                print(f"Audio cleanup warning: {cleanup_error}")
+        mp.setOnCompletionListener(on_complete)
+        fis.close()
 
-        mp.setOnCompletionListener(on_playback_complete)
-
+    except ImportError:
+        # Graceful fallback so your code still executes smoothly during PC desktop testing
+        print(f"[PC Environment Mode] Audio Triggered: {filename}")
     except Exception as e:
-        print(f"Native audio engine playback error: {e}")
-
+        print(f"Native audio sub-system crash: {e}")
 
 class App:
     def __init__(self):
@@ -206,8 +172,9 @@ class App:
     def appAPI(self):
 
         @self.app.route('/api/play/<filename>')
-        def trigger_sound_effect(filename):
-            playNativeSound(filename)
+        def playSound(filename):
+            # Directly hand off back-end audio requests straight to the native hardware player
+            play_native_sound(filename)
             return jsonify({"status": "played"})
 
         @self.app.route("/api/submit-answer", methods=["POST"])

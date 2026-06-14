@@ -118,6 +118,13 @@ class AndroidSoundPool:
 
         cls._init()
 
+        import threading
+
+        print(
+            "SoundPool thread:",
+            threading.current_thread().name
+        )
+
         # Rate limit sound requests
         now = time.time()
 

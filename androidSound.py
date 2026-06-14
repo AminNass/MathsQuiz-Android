@@ -55,43 +55,47 @@ class AndroidMediaPlayer:
             print(f"Audio playback failed: {e}")
             return False
 
+import threading
+
 class AndroidSoundPool:
 
     _SoundPool = None
     _soundPool = None
     _sounds = {}
 
+    _lock = threading.Lock()
+
     # Anti-spam protection
     _lastPlay = 0.0
     _minInterval = 0.05  # 50ms = max 20 plays/sec
 
-    # ---------------- INIT ----------------
     @classmethod
     def _init(cls):
-        if cls._SoundPool is not None:
-            return
+        with cls._lock:
+            if cls._SoundPool is not None:
+                return
 
-        from jnius import autoclass
+            from jnius import autoclass
 
-        SoundPoolBuilder = autoclass("android.media.SoundPool$Builder")
-        AudioAttributesBuilder = autoclass("android.media.AudioAttributes$Builder")
-        AudioAttributes = autoclass("android.media.AudioAttributes")
+            SoundPoolBuilder = autoclass("android.media.SoundPool$Builder")
+            AudioAttributesBuilder = autoclass("android.media.AudioAttributes$Builder")
+            AudioAttributes = autoclass("android.media.AudioAttributes")
 
-        attrs = (
-            AudioAttributesBuilder()
-            .setUsage(AudioAttributes.USAGE_GAME)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-        )
+            attrs = (
+                AudioAttributesBuilder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            )
 
-        cls._soundPool = (
-            SoundPoolBuilder()
-            .setMaxStreams(2)  # UI clicks don't need 10 streams
-            .setAudioAttributes(attrs)
-            .build()
-        )
+            cls._soundPool = (
+                SoundPoolBuilder()
+                .setMaxStreams(2)
+                .setAudioAttributes(attrs)
+                .build()
+            )
 
-        cls._SoundPool = True
+            cls._SoundPool = True
 
     @classmethod
     def preload(cls, key, filename):
@@ -106,10 +110,11 @@ class AndroidSoundPool:
             return False
 
         soundID = cls._soundPool.load(filepath, 1)
-        cls._sounds[key] = soundID
+
+        with cls._lock:   # ✅ protect shared dict write
+            cls._sounds[key] = soundID
 
         print(f"Preloaded sound: {key} ({soundID})")
-
         return True
 
     @classmethod
@@ -118,27 +123,21 @@ class AndroidSoundPool:
 
         cls._init()
 
-        import threading
-
-        print(
-            "SoundPool thread:",
-            threading.current_thread().name
-        )
-
-        # Rate limit sound requests
         now = time.time()
 
-        if now - cls._lastPlay < cls._minInterval:
-            return False
+        with cls._lock:
+            # atomic rate-limit check + update
+            if now - cls._lastPlay < cls._minInterval:
+                return False
+            cls._lastPlay = now
 
-        cls._lastPlay = now
+            if key not in cls._sounds:
+                print(f"Sound not loaded: {key}")
+                return False
 
-        if key not in cls._sounds:
-            print(f"Sound not loaded: {key}")
-            return False
+            soundID = cls._sounds[key]
 
-        soundID = cls._sounds[key]
-
+        # IMPORTANT: play() is OUTSIDE lock (prevents blocking audio thread)
         print(f"Playing sound: {key} ({soundID})")
 
         streamID = cls._soundPool.play(
@@ -155,4 +154,4 @@ class AndroidSoundPool:
         if streamID == 0:
             print("SoundPool rejected playback request")
 
-        return streamID != 0
+        return streamID

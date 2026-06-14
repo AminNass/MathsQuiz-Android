@@ -19,57 +19,70 @@ except Exception as e:
     Context = None
     print(f"Jnius or Android classes not found. Defaulting to PC Mode. (Error: {e})")
 
+import os
+from jnius import autoclass
+
+# CRITICAL: Keeps a strong reference alive in memory so Python's Garbage
+# Collector does not destroy the player object while Android is preparing it.
+_active_audio_handles = []
+
 
 def playNativeSound(filename):
-    """Plays audio via Android hardware by staging assets in a media-accessible directory."""
+    """Plays UI audio assets flawlessly using explicit IPC-safe ParcelFileDescriptors."""
     if MediaPlayer is None or Context is None:
         print(f"[PC Emulator Mode] Playing sound: {filename}")
         return
 
     try:
-        import os
-        import shutil
-        # 1. Define the internal path where Buildozer extracts files
-        internal_path = os.path.abspath(f"static/sounds/{filename}")
-        if not os.path.exists(internal_path):
-            print(f"Native audio error: Source asset missing at {internal_path}")
+        # 1. Target the local internal file path
+        abs_path = os.path.abspath(f"static/sounds/{filename}")
+        if not os.path.exists(abs_path):
+            print(f"Native audio error: Target file missing at {abs_path}")
             return
 
-        # 2. Get the Android External Cache Directory (accessible by system mediaserver)
-        java_cache_dir = Context.getExternalCacheDir()
-        if java_cache_dir is None:
-            print("Native audio error: External cache storage is unavailable.")
-            return
+        # 2. Import core Android OS components
+        ParcelFileDescriptor = autoclass('android.os.ParcelFileDescriptor')
+        JavaFile = autoclass('java.io.File')
+        MediaPlayerClass = autoclass('android.media.MediaPlayer')
 
-        # 3. Create the target destination path in the external cache
-        external_cache_root = java_cache_dir.getAbsolutePath()
-        target_path = os.path.join(external_cache_root, filename)
+        # 3. Wrap file in an IPC-safe Parcel descriptor
+        j_file = JavaFile(abs_path)
+        pfd = ParcelFileDescriptor.open(j_file, ParcelFileDescriptor.MODE_READ_ONLY)
 
-        # 4. Securely copy the file over if it isn't already staged there
-        if not os.path.exists(target_path) or os.path.getsize(target_path) != os.path.getsize(internal_path):
-            os.makedirs(os.path.dirname(target_path), exist_ok=True)
-            shutil.copy2(internal_path, target_path)
-            print(f"Staged audio file in external cache: {target_path}")
+        # 4. Measure size metrics
+        file_length = os.path.getsize(abs_path)
 
-        # 5. Measure size and fetch Java stream handlers
-        file_length = os.path.getsize(target_path)
+        # 5. Initialize the media player engine instance
+        mp = MediaPlayerClass()
 
-        from jnius import autoclass
-        FileInputStream = autoclass('java.io.FileInputStream')
+        # 6. Pass the duplicated native descriptor handle with accurate bounds
+        mp.setDataSource(pfd.getFileDescriptor(), 0, file_length)
 
-        mp = MediaPlayer()
-        fis = FileInputStream(target_path)
-
-        # 6. Pass explicit data bounds to the media player
-        mp.setDataSource(fis.getFD(), 0, file_length)
+        # 7. Warm up audio hardware streams synchronously
         mp.prepare()
-        fis.close()  # Safe to close now that the player has verified the stream bounds
 
-        # 7. Fire the audio hardware
+        # Protect the active components from Python's memory cleanup cycles
+        _active_audio_handles.append((mp, pfd))
+
+        # 8. Fire the sound effect
         mp.start()
 
-        # Clean memory footprints immediately when playback terminates
-        mp.setOnCompletionListener(lambda player: player.release())
+        # 9. Clean up all system resource handles when the sound finishes playing
+        def on_playback_complete(player_instance):
+            try:
+                player_instance.release()
+                pfd.close()
+
+                # Locate and clear this handle from active memory tracking
+                for item in _active_audio_handles:
+                    if item[0] == player_instance:
+                        _active_audio_handles.remove(item)
+                        break
+                print(f"Successfully released native audio resources for {filename}")
+            except Exception as cleanup_error:
+                print(f"Audio cleanup warning: {cleanup_error}")
+
+        mp.setOnCompletionListener(on_playback_complete)
 
     except Exception as e:
         print(f"Native audio engine playback error: {e}")

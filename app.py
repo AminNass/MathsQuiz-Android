@@ -30,7 +30,7 @@ class App:
         # Preload sounds:
         self.AndroidSoundPool.preload('click', 'click.wav')
 
-        self.soundQueue = queue.Queue(maxsize=50)
+        self.soundQueue = queue.Queue(maxsize=15)
         self._soundWorkerRunning = True
         self.soundWorker = threading.Thread(target=self._sound_worker, daemon=True)
         self.soundWorker.start()

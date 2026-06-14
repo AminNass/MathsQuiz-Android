@@ -56,6 +56,9 @@ class AndroidMediaPlayer:
             return False
 
 import threading
+import queue
+import time
+import os
 
 class AndroidSoundPool:
 
@@ -65,9 +68,9 @@ class AndroidSoundPool:
 
     _lock = threading.Lock()
 
-    # Anti-spam protection
-    _lastPlay = 0.0
-    _minInterval = 0.05  # 50ms = max 20 plays/sec
+    # audio queue (CRITICAL FIX)
+    _queue = queue.Queue()
+    _worker_started = False
 
     @classmethod
     def _init(cls):
@@ -97,48 +100,37 @@ class AndroidSoundPool:
 
             cls._SoundPool = True
 
+    # ---------------- AUDIO WORKER ----------------
     @classmethod
-    def preload(cls, key, filename):
-        import os
+    def _start_worker(cls):
+        if cls._worker_started:
+            return
 
-        cls._init()
+        cls._worker_started = True
 
-        filepath = os.path.join("static", "sounds", filename)
+        def worker():
+            while True:
+                key, volume = cls._queue.get()
 
-        if not os.path.isfile(filepath):
-            print(f"Sound not found: {filepath}")
-            return False
+                try:
+                    cls._play_internal(key, volume)
+                except Exception as e:
+                    print("Audio worker error:", e)
 
-        soundID = cls._soundPool.load(filepath, 1)
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
 
-        with cls._lock:   # ✅ protect shared dict write
-            cls._sounds[key] = soundID
-
-        print(f"Preloaded sound: {key} ({soundID})")
-        return True
-
+    # ---------------- INTERNAL SAFE PLAY ----------------
     @classmethod
-    def play(cls, key, volume=1.0):
-        import time
-
+    def _play_internal(cls, key, volume):
         cls._init()
-
-        now = time.time()
 
         with cls._lock:
-            # atomic rate-limit check + update
-            if now - cls._lastPlay < cls._minInterval:
-                return False
-            cls._lastPlay = now
-
             if key not in cls._sounds:
                 print(f"Sound not loaded: {key}")
                 return False
 
             soundID = cls._sounds[key]
-
-        # IMPORTANT: play() is OUTSIDE lock (prevents blocking audio thread)
-        print(f"Playing sound: {key} ({soundID})")
 
         streamID = cls._soundPool.play(
             soundID,
@@ -149,9 +141,40 @@ class AndroidSoundPool:
             1.0
         )
 
-        print(f"Stream ID: {streamID}")
+        print(f"Playing sound: {key} ({soundID}) → stream {streamID}")
 
         if streamID == 0:
             print("SoundPool rejected playback request")
 
         return streamID
+
+    # ---------------- PUBLIC API ----------------
+    @classmethod
+    def preload(cls, key, filename):
+        cls._init()
+
+        filepath = os.path.join("static", "sounds", filename)
+
+        if not os.path.isfile(filepath):
+            print(f"Sound not found: {filepath}")
+            return False
+
+        soundID = cls._soundPool.load(filepath, 1)
+
+        with cls._lock:
+            cls._sounds[key] = soundID
+
+        print(f"Preloaded sound: {key} ({soundID})")
+        return True
+
+    @classmethod
+    def play(cls, key, volume=1.0):
+        """
+        THREAD-SAFE ENTRY POINT (Flask calls THIS)
+        """
+        cls._init()
+        cls._start_worker()
+
+        # just queue it — NEVER touch SoundPool here
+        cls._queue.put((key, volume))
+        return True

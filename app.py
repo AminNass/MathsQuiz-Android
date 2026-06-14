@@ -1,7 +1,40 @@
+import os
 import threading
 from flask import Flask, render_template, request, jsonify, json
 import webview
+from jnius import autoclass
 import mathsQuiz
+
+
+# NATIVE ANDROID MULTIMEDIA ENGINE
+if 'ANDROID_PRIVATE_VOLUME' in os.environ:
+    MediaPlayer = autoclass('android.media.MediaPlayer')
+    Context = autoclass('org.kivy.android.PythonActivity').mActivity
+else:
+    MediaPlayer = None
+
+
+def playNativeSound(filename):
+    """Plays audio directly via Android system hardware instead of HTTP streaming."""
+    if MediaPlayer is None:
+        print(f"[PC Emulator Mode] Playing sound: {filename}")
+        return
+
+    try:
+        # Targets the packed static asset directory directly inside the APK
+        asset_path = f"app/static/sounds/{filename}"
+
+        mp = MediaPlayer()
+        afd = Context.getAssets().openFd(asset_path)
+        mp.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength())
+        afd.close()
+        mp.prepare()
+        mp.start()
+
+        # Automatically release the media player instance from system memory when finished
+        mp.setOnCompletionListener(lambda player: player.release())
+    except Exception as e:
+        print(f"Native audio engine playback error: {e}")
 
 
 class App:
@@ -120,6 +153,11 @@ class App:
             )
 
     def appAPI(self):
+
+        @self.app.route('/api/play/<filename>')
+        def trigger_sound_effect(filename):
+            playNativeSound(filename)
+            return jsonify({"status": "played"})
 
         @self.app.route("/api/submit-answer", methods=["POST"])
         def submitAnswer():

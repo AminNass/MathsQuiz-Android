@@ -21,22 +21,22 @@
         <p>You can do better.</p>
         <br>
         <img src="{{ url_for('static', filename='images/C.png') }}" alt="Grade C" style="width: 120px; height: 120px">
-        <audio src="{{ url_for('static', filename='sounds/small-clap.mp3') }}" autoplay></audio>
+        <span id="page-audio-track" data-url="{{ url_for('static', filename='sounds/small-clap.mp3') }}"></span>
     {% elif score < 8 %}
         <p>You did very good.</p>
         <br>
         <img src="{{ url_for('static', filename='images/B.png') }}" alt="Grade B" style="width: 120px; height: 120px">
-        <audio src="{{ url_for('static', filename='sounds/applause.mp3') }}" autoplay></audio>
+        <span id="page-audio-track" data-url="{{ url_for('static', filename='sounds/applause.mp3') }}"></span>
     {% elif score < 10 %}
         <p>Excellent work!</p>
         <br>
         <img src="{{ url_for('static', filename='images/A.png') }}" alt="Grade A" style="width: 120px; height: 120px">
-        <audio src="{{ url_for('static', filename='sounds/applause-cheer.mp3') }}" autoplay></audio>
+        <span id="page-audio-track" data-url="{{ url_for('static', filename='sounds/applause-cheer.mp3') }}"></span>
     {% elif score == 10 %}
         <p>You're a superstar!</p>
         <br>
         <img src="{{ url_for('static', filename='images/Star.png') }}" alt="Star" style="width: 120px; height: 120px">
-        <audio src="{{ url_for('static', filename='sounds/applause-cheer.mp3') }}" autoplay></audio>
+        <span id="page-audio-track" data-url="{{ url_for('static', filename='sounds/applause-cheer.mp3') }}"></span>
     {% endif %}
 
     <br>

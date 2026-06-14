@@ -8,50 +8,28 @@ import mathsQuiz
 _active_audio_resources = []
 
 
-def play_native_sound(filename):
+def play_webview_sound(window, filename):
     """
-    Plays user interface sound effects using Android's ParcelFileDescriptor mechanism.
-    Safely marshals file access across the sandboxed system process boundary.
+    Triggers audio playback directly inside the WebView container.
+    Bypasses Android system process sandboxing entirely and works cross-platform.
     """
-    sound_path = os.path.abspath(f"static/sounds/{filename}")
-    if not os.path.exists(sound_path):
-        print(f"--- Audio Error: File missing at {sound_path} ---")
+    if not window:
+        print("--- Audio Error: WebView window instance not initialized yet ---")
         return
 
+    # Modern JavaScript audio injection
+    js_code = f"""
+    (function() {{
+        var audio = new Audio('/static/sounds/{filename}');
+        audio.play().catch(function(error) {{
+            console.error("WebView Audio Playback Failed:", error);
+        }});
+    }})();
+    """
     try:
-        from jnius import autoclass
-
-        MediaPlayer = autoclass('android.media.MediaPlayer')
-        File = autoclass('java.io.File')
-        ParcelFileDescriptor = autoclass('android.os.ParcelFileDescriptor')
-
-        mp = MediaPlayer()
-        file_obj = File(sound_path)
-
-        # Open via ParcelFileDescriptor to clone the file handle explicitly for the OS media server
-        pfd = ParcelFileDescriptor.open(file_obj, ParcelFileDescriptor.MODE_READ_ONLY)
-
-        mp.setDataSource(pfd.getFileDescriptor())
-        mp.prepare()
-        mp.start()
-
-        # Track references together to keep them alive for the duration of the sound effect
-        _active_audio_resources.append((mp, pfd))
-
-        # Automatically clean up oldest handles if the queue builds up
-        if len(_active_audio_resources) > 5:
-            old_mp, old_pfd = _active_audio_resources.pop(0)
-            try:
-                old_mp.release()
-                old_pfd.close()
-            except Exception:
-                pass
-
-    except ImportError:
-        # Safe fallback for seamless local testing on desktop environments
-        print(f"[PC Environment Mode] Audio Triggered: {filename}")
+        window.evaluate_js(js_code)
     except Exception as e:
-        print(f"Native audio sub-system crash: {e}")
+        print(f"Failed to evaluate audio JS: {e}")
 
 class App:
     def __init__(self):
@@ -173,7 +151,7 @@ class App:
         @self.app.route('/api/play/<filename>')
         def playSound(filename):
             # Directly hand off back-end audio requests straight to the native hardware player
-            play_native_sound(filename)
+            play_webview_sound(self.window, filename)
             return jsonify({"status": "played"})
 
         @self.app.route("/api/submit-answer", methods=["POST"])

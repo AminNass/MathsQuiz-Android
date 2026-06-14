@@ -115,6 +115,7 @@ class AndroidSoundPool:
             print(f"Sound not found: {filepath}")
             return False
 
+        # IMPORTANT: load is async → this is still "best effort"
         soundID = cls._soundPool.load(filepath, 1)
 
         with cls._lock:
@@ -133,11 +134,13 @@ class AndroidSoundPool:
         now = time.time()
 
         with cls._lock:
-            # rate limit
+
+            # rate limit FIRST (prevents spam JNI calls)
             if now - cls._lastPlay < cls._minInterval:
                 return False
 
             soundID = cls._sounds.get(key)
+
             if soundID is None:
                 print(f"Sound not loaded: {key}")
                 return False
@@ -145,10 +148,11 @@ class AndroidSoundPool:
             cls._lastPlay = now
 
         try:
+            # IMPORTANT: defensive cast (PyJNIus sometimes needs int)
             streamID = cls._soundPool.play(
-                soundID,
-                volume,
-                volume,
+                int(soundID),
+                float(volume),
+                float(volume),
                 1,
                 0,
                 1.0

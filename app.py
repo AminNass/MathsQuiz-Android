@@ -8,51 +8,53 @@ import time
 
 class App:
     def __init__(self):
-        # Create Flask instance
         self.app = Flask(__name__)
 
-        # Session Data:
         self.currentManager: mathsQuiz.QuestionManager | None = None
         self.history = {}
 
-        # Android Media Player:
         self.AndroidMediaPlayer = androidSound.AndroidMediaPlayer
         self.AndroidSoundPool = androidSound.AndroidSoundPool
 
-        # Register app menus
         self.appMenus()
         self.appAPI()
 
-        # Start Flask as a background task (Very important, Android has strict memory management)
+        # Flask thread
         self.flaskServer = threading.Thread(target=self.runFlask, daemon=True)
         self.flaskServer.start()
 
-        # Preload sounds:
+        # Sound system
+        self.soundQueue = queue.Queue(maxsize=15)
+
         self.AndroidSoundPool.preload('click', 'click.wav')
 
-        self.soundQueue = queue.Queue(maxsize=15)
-        self._soundWorkerRunning = True
-        self.soundWorker = threading.Thread(target=self._sound_worker, daemon=True)
-        self.soundWorker.start()
+        # IMPORTANT: no worker thread touching JNI anymore
+        self._sound_worker_running = True
 
         # Launch the pywebview window container in the main thread
         self.window = webview.create_window('Maths Quiz', 'http://127.0.0.1:5000/')
         self.runWindow()
 
-    def _sound_worker(self):
-        while self._soundWorkerRunning:
-            try:
-                key = self.soundQueue.get()
+        # -------------------------
+        # SAFE SOUND DISPATCH (MAIN THREAD)
+        # -------------------------
 
-                if key is None:
-                    break
-
+    def _process_sounds(self):
+        try:
+            while True:
+                key = self.soundQueue.get_nowait()
                 self.AndroidSoundPool.play(key)
+        except queue.Empty:
+            pass
 
-                self.soundQueue.task_done()
+        # -------------------------
+        # MAIN LOOP HOOK
+        # -------------------------
 
-            except Exception as e:
-                print("Sound worker error:", e)
+    def _loop(self):
+        while True:
+            self._process_sounds()
+            time.sleep(0.02)
 
     # Run window
     def runWindow(self):

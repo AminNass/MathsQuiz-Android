@@ -101,8 +101,8 @@ class AndroidSoundPool:
             print(f"Sound not found: {filepath}")
             return False
 
-        sound_id = cls._soundPool.load(filepath, 1)
-        cls._sounds[key] = sound_id
+        soundID = cls._soundPool.load(filepath, 1)
+        cls._sounds[key] = soundID
 
         return True
 
@@ -114,10 +114,10 @@ class AndroidSoundPool:
             print(f"Sound not loaded: {key}")
             return False
 
-        sound_id = cls._sounds[key]
+        soundID = cls._sounds[key]
 
         cls._soundPool.play(
-            sound_id,
+            soundID,
             volume, volume,
             1,
             0,

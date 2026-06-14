@@ -20,7 +20,6 @@ except Exception as e:
     Context = None
     print(f"Jnius or Android classes not found. Defaulting to PC Mode. (Error: {e})")
 
-
 def playNativeSound(filename):
     """Plays audio directly via Android system hardware instead of HTTP streaming."""
     if MediaPlayer is None or Context is None:
@@ -28,30 +27,40 @@ def playNativeSound(filename):
         return
 
     try:
-        # 1. Safely locate the extracted asset path
+        # 1. Target the absolute file path
         abs_path = os.path.abspath(f"static/sounds/{filename}")
         print(f"Native audio absolute path: {abs_path}")
+
+        if not os.path.exists(abs_path):
+            print(f"Native audio error: File not found at {abs_path}")
+            return
+
+        # 2. Calculate the exact file size in bytes
+        file_length = os.path.getsize(abs_path)
 
         from jnius import autoclass
         FileInputStream = autoclass('java.io.FileInputStream')
 
         mp = MediaPlayer()
 
-        # 2. Open the file channel
+        # 3. Open the file stream handle safely within your app process
         fis = FileInputStream(abs_path)
-        mp.setDataSource(fis.getFD())
 
-        # 3. CRITICAL: Prepare the hardware BEFORE closing the stream handle
+        # 4. FIX: Explicitly pass the file descriptor, start offset (0), and length
+        mp.setDataSource(fis.getFD(), 0, file_length)
+
+        # 5. Prepare and cache the hardware buffers
         mp.prepare()
 
-        # 4. Now that it's initialized and buffered, it's completely safe to close the stream
+        # 6. Stream is securely initialized; safe to close local file stream copy
         fis.close()
 
-        # 5. Play the track
+        # 7. Fire the sound effect
         mp.start()
 
-        # Automatically release the media player instance from system memory when finished
+        # Automatic memory cleanup after the click finishes playing
         mp.setOnCompletionListener(lambda player: player.release())
+
     except Exception as e:
         print(f"Native audio engine playback error: {e}")
 

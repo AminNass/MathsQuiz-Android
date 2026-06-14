@@ -15,7 +15,7 @@
         <p style="padding-left: 5px; text-shadow: 2px 2px 5px darkgrey;">
             Question: {{ count }} / 10
         </p>
-        <button onclick="playThenNavigate('stick', '/')" class="clean-button vertical-centre"><img src="{{ url_for('static', filename='images/GoBack.png') }}" alt="Go Back" style="width: 40px; height: 40px; padding-right: 5px;"></button>
+        <button onclick="playThenNavigate('click', '/')" class="clean-button vertical-centre"><img src="{{ url_for('static', filename='images/GoBack.png') }}" alt="Go Back" style="width: 40px; height: 40px; padding-right: 5px;"></button>
     </nav>
     <section>
 
@@ -43,7 +43,7 @@
         <h3 class="text-centre" style="padding: 8px;">{{ question.question }}</h3>
 
         <label for="answer">Answer</label>
-        <input type="number" id="answer" name="answer" onkeydown="answerPressEnter(event, this, '{{ questionType }}','{{ level }}')">
+        <input type="number" id="answer" name="answer" step="1" pattern="\d*" onkeydown="answerPressEnter(event, this, '{{ questionType }}','{{ level }}')">
 
         <br>
         <button onclick="submitAnswer('{{ questionType }}','{{ level }}')">Submit Answer</button>

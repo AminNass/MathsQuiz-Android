@@ -38,7 +38,7 @@ class App:
 
     # Launch flask server.
     def runFlask(self):
-        self.app.run(host='0.0.0.0', port=5000, debug=False,use_reloader=False,threaded=True)
+        self.app.run(host='0.0.0.0', port=5000, debug=False,use_reloader=False,threaded=False)
 
 
     def appMenus(self):

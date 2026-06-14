@@ -8,81 +8,66 @@ import os
 _active_audio_resources = []
 
 
-def play_native_sound(filename):
-    print("\n========== AUDIO DEBUG ==========")
+import os
+
+# Keep references alive while sounds are playing
+_active_players = []
+
+
+def play_native_sound(filename: str):
+    """
+    Play a sound effect on Android.
+
+    Supports WAV and MP3.
+    Safe to call from Flask routes.
+    Falls back gracefully on desktop.
+    """
 
     try:
         sound_path = os.path.abspath(
             os.path.join("static", "sounds", filename)
         )
 
-        print(f"Filename: {filename}")
-        print(f"Absolute Path: {sound_path}")
-        print(f"Exists: {os.path.exists(sound_path)}")
+        print("\n=== AUDIO DEBUG ===")
+        print(f"File: {filename}")
+        print(f"Path: {sound_path}")
 
-        if not os.path.exists(sound_path):
-            print("ERROR: File does not exist")
-            return
+        if not os.path.isfile(sound_path):
+            print("ERROR: File not found")
+            return False
 
         print(f"Size: {os.path.getsize(sound_path)} bytes")
 
         from jnius import autoclass
 
         MediaPlayer = autoclass("android.media.MediaPlayer")
-        FileInputStream = autoclass("java.io.FileInputStream")
-        File = autoclass("java.io.File")
 
-        file_obj = File(sound_path)
+        player = MediaPlayer()
 
-        print(f"Java File Exists: {file_obj.exists()}")
-        print(f"Java File Length: {file_obj.length()}")
+        # Let Android open the file directly
+        player.setDataSource(sound_path)
 
-        fis = FileInputStream(file_obj)
+        print("Preparing...")
+        player.prepare()
 
-        try:
-            fd = fis.getFD()
+        print("Starting playback...")
+        player.start()
 
-            print("Created FileInputStream")
-            print("Got FileDescriptor")
+        # Keep alive while playing
+        _active_players.append(player)
 
-            mp = MediaPlayer()
+        print("Sound started successfully")
 
-            print("Created MediaPlayer")
+        return True
 
-            mp.setDataSource(
-                fd,
-                0,
-                file_obj.length()
-            )
-
-            print("setDataSource SUCCESS")
-
-            print("Calling prepare()...")
-
-            mp.prepare()
-
-            print("prepare() SUCCESS")
-
-            mp.start()
-
-            print("start() SUCCESS")
-
-            _active_audio_resources.append(mp)
-
-        finally:
-            try:
-                fis.close()
-                print("Closed FileInputStream")
-            except Exception as e:
-                print(f"Failed closing stream: {e}")
+    except ImportError:
+        # Running on PC
+        print(f"[Desktop Mode] Would play: {filename}")
+        return True
 
     except Exception as e:
-        print("\n=== AUDIO FAILURE ===")
-        print(type(e))
-        print(e)
-        print("=====================\n")
-
-    print("========== END AUDIO DEBUG ==========\n")
+        print(f"Audio playback failed: {e}")
+        return False
 
 class App:
     def __init__(self):

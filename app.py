@@ -4,14 +4,14 @@ from flask import Flask, render_template, request, jsonify
 import webview
 import mathsQuiz
 
-# Global list to protect active players from Python garbage collection mid-playback
-_active_audio_players = []
+# A clean rolling pool to manage active playback and prevent memory leaks on Android
+_active_audio_resources = []
 
 
 def play_native_sound(filename):
     """
-    Plays audio effects using native Android MediaPlayer via raw File Descriptors.
-    Bypasses Android storage sandboxing completely and drops back to console logging on PC.
+    Plays user interface sound effects using Android's ParcelFileDescriptor mechanism.
+    Safely marshals file access across the sandboxed system process boundary.
     """
     sound_path = os.path.abspath(f"static/sounds/{filename}")
     if not os.path.exists(sound_path):
@@ -22,34 +22,33 @@ def play_native_sound(filename):
         from jnius import autoclass
 
         MediaPlayer = autoclass('android.media.MediaPlayer')
-        FileInputStream = autoclass('java.io.FileInputStream')
+        File = autoclass('java.io.File')
+        ParcelFileDescriptor = autoclass('android.os.ParcelFileDescriptor')
 
         mp = MediaPlayer()
-        fis = FileInputStream(sound_path)
-        fd = fis.getFD()
+        file_obj = File(sound_path)
 
-        # Passing raw file descriptors avoids Android OS path security policy restrictions
-        mp.setDataSource(fd, 0, os.path.getsize(sound_path))
+        # Open via ParcelFileDescriptor to clone the file handle explicitly for the OS media server
+        pfd = ParcelFileDescriptor.open(file_obj, ParcelFileDescriptor.MODE_READ_ONLY)
+
+        mp.setDataSource(pfd.getFileDescriptor())
         mp.prepare()
-
-        # Keep track of instance so Python memory management doesn't delete it while playing
-        _active_audio_players.append(mp)
         mp.start()
 
-        # Clean up system handles when sound effect concludes
-        def on_complete(player_instance):
-            try:
-                player_instance.release()
-                if player_instance in _active_audio_players:
-                    _active_audio_players.remove(player_instance)
-            except Exception as ce:
-                print(f"Audio memory release exception: {ce}")
+        # Track references together to keep them alive for the duration of the sound effect
+        _active_audio_resources.append((mp, pfd))
 
-        mp.setOnCompletionListener(on_complete)
-        fis.close()
+        # Automatically clean up oldest handles if the queue builds up
+        if len(_active_audio_resources) > 5:
+            old_mp, old_pfd = _active_audio_resources.pop(0)
+            try:
+                old_mp.release()
+                old_pfd.close()
+            except Exception:
+                pass
 
     except ImportError:
-        # Graceful fallback so your code still executes smoothly during PC desktop testing
+        # Safe fallback for seamless local testing on desktop environments
         print(f"[PC Environment Mode] Audio Triggered: {filename}")
     except Exception as e:
         print(f"Native audio sub-system crash: {e}")

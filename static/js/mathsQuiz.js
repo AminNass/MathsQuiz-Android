@@ -27,29 +27,40 @@ window.addEventListener('keydown', function (e) {
 // Audio handlers:
 
 function playThenNavigate(soundUrl, targetUrl, element) {
+    // 1. Guard against double-tap requests
     if (document.body.classList.contains('page-is-loading')) {
-        return
+        return;
     }
 
+    // Lock UI
     document.body.classList.add('page-is-loading');
-    const audio = new Audio(soundUrl);
 
     if (element) {
-      element.classList.add('page-exit');
+        element.classList.add('page-exit');
     }
 
-    // Trigger the page shift the exact millisecond the audio finishes playing
-    audio.onended = function() {
-        window.location.href = targetUrl;
-    };
+    const audio = new Audio(soundUrl);
+    let hasNavigated = false;
 
-    // If the sound fails to load, don't freeze the app!
-    // Force transition anyway after 200 milliseconds.
-    setTimeout(() => {
-        window.location.href = targetUrl;
-    }, 200);
+    // Unified navigation trigger to prevent double execution
+    function triggerNavigation() {
+        if (!hasNavigated) {
+            hasNavigated = true;
+            window.location.href = targetUrl;
+        }
+    }
 
-    audio.play();
+    // Trigger when the audio finishes playing completely
+    audio.onended = triggerNavigation;
+
+    // only if the audio hangs or takes too long.
+    const fallbackTimeout = setTimeout(triggerNavigation, 1500);
+
+    // C. Fire audio playback
+    audio.play().catch(error => {
+        clearTimeout(fallbackTimeout);
+        triggerNavigation();
+    });
 }
 
 // Question Page Functions
@@ -82,7 +93,6 @@ function submitAnswer(questionType, level) {
             if (data.status === "success") {
                 playThenNavigate("/static/sounds/click.mp3",`question?question-type=${questionType}&level=${level}&state=current`)
             } else {
-                console.log("Nothing was entered");
                 document.body.classList.remove('page-is-loading');
             }
         })
@@ -94,8 +104,8 @@ function answerPressEnter(event, element, questionType, level) {
     if (event.key === 'Enter') {
         event.preventDefault();
 
-        let inputValue = element.value; // Get the typed text
-        console.log("User entered: " + inputValue);
+        // Get the typed text
+        let inputValue = element.value;
 
         submitAnswer(questionType, level);
     }

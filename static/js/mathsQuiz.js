@@ -93,8 +93,8 @@ function answerPressEnter(event, element, questionType, level) {
 function playSfx(key) {
     if (!key) return Promise.resolve();
 
-    //return fetch(`/api/sfx/${key}`)
-    //    .catch(err => console.error(err));
+    return fetch(`/api/sfx/${key}`)
+        .catch(err => console.error(err));
 }
 
 function playSound(filename) {

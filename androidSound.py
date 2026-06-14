@@ -61,6 +61,10 @@ class AndroidSoundPool:
     _soundPool = None
     _sounds = {}
 
+    # Anti-spam protection
+    _lastPlay = 0.0
+    _minInterval = 0.05  # 50ms = max 20 plays/sec
+
     # ---------------- INIT ----------------
     @classmethod
     def _init(cls):
@@ -82,7 +86,7 @@ class AndroidSoundPool:
 
         cls._soundPool = (
             SoundPoolBuilder()
-            .setMaxStreams(10)
+            .setMaxStreams(2)  # UI clicks don't need 10 streams
             .setAudioAttributes(attrs)
             .build()
         )
@@ -104,11 +108,23 @@ class AndroidSoundPool:
         soundID = cls._soundPool.load(filepath, 1)
         cls._sounds[key] = soundID
 
+        print(f"Preloaded sound: {key} ({soundID})")
+
         return True
 
     @classmethod
     def play(cls, key, volume=1.0):
+        import time
+
         cls._init()
+
+        # Rate limit sound requests
+        now = time.time()
+
+        if now - cls._lastPlay < cls._minInterval:
+            return False
+
+        cls._lastPlay = now
 
         if key not in cls._sounds:
             print(f"Sound not loaded: {key}")
@@ -116,12 +132,20 @@ class AndroidSoundPool:
 
         soundID = cls._sounds[key]
 
-        cls._soundPool.play(
+        print(f"Playing sound: {key} ({soundID})")
+
+        streamID = cls._soundPool.play(
             soundID,
-            volume, volume,
+            volume,
+            volume,
             1,
             0,
             1.0
         )
 
-        return True
+        print(f"Stream ID: {streamID}")
+
+        if streamID == 0:
+            print("SoundPool rejected playback request")
+
+        return streamID != 0

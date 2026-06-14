@@ -7,29 +7,61 @@ import mathsQuiz
 # A clean rolling pool to manage active playback and prevent memory leaks on Android
 _active_audio_resources = []
 
+# A rolling pool to keep MediaPlayer instances alive during playback and prevent memory leaks
+_active_audio_resources = []
 
-def play_webview_sound(window, filename):
+
+def play_native_sound(filename):
     """
-    Triggers audio playback directly inside the WebView container.
-    Bypasses Android system process sandboxing entirely and works cross-platform.
+    Plays user interface sound effects using Android's native MediaPlayer.
+    Uses explicit byte bounding to bypass sandbox process security restrictions.
     """
-    if not window:
-        print("--- Audio Error: WebView window instance not initialized yet ---")
+    sound_path = os.path.abspath(f"static/sounds/{filename}")
+    if not os.path.exists(sound_path):
+        print(f"--- Audio Error: File missing at {sound_path} ---")
         return
 
-    # Modern JavaScript audio injection
-    js_code = f"""
-    (function() {{
-        var audio = new Audio('/static/sounds/{filename}');
-        audio.play().catch(function(error) {{
-            console.error("WebView Audio Playback Failed:", error);
-        }});
-    }})();
-    """
     try:
-        window.evaluate_js(js_code)
+        from jnius import autoclass
+
+        MediaPlayer = autoclass('android.media.MediaPlayer')
+        FileInputStream = autoclass('java.io.FileInputStream')
+        File = autoclass('java.io.File')
+
+        mp = MediaPlayer()
+        file_obj = File(sound_path)
+
+        # Open direct low-level stream access to the sound file
+        fis = FileInputStream(file_obj)
+        fd = fis.getFD()
+        length = file_obj.length()
+
+        # CRITICAL FIX: Explicitly pass the descriptor, offset (0), and file length.
+        # This permits Android's background media server to safely read our private app files.
+        mp.setDataSource(fd, 0, length)
+
+        # Safe to close immediately after setting data source as MediaPlayer duplicates the descriptor
+        fis.close()
+
+        mp.prepare()
+        mp.start()
+
+        # Track player references to protect them from aggressive garbage collection mid-play
+        _active_audio_resources.append(mp)
+
+        # Clear oldest instances periodically to recycle system audio channels
+        if len(_active_audio_resources) > 10:
+            old_mp = _active_audio_resources.pop(0)
+            try:
+                old_mp.release()
+            except Exception:
+                pass
+
+    except ImportError:
+        # Safe fallback for seamless local testing on desktop environments
+        print(f"[PC Environment Mode] Audio Triggered: {filename}")
     except Exception as e:
-        print(f"Failed to evaluate audio JS: {e}")
+        print(f"Native audio sub-system crash: {e}")
 
 class App:
     def __init__(self):
@@ -151,7 +183,7 @@ class App:
         @self.app.route('/api/play/<filename>')
         def playSound(filename):
             # Directly hand off back-end audio requests straight to the native hardware player
-            play_webview_sound(self.window, filename)
+            play_native_sound(filename)
             return jsonify({"status": "played"})
 
         @self.app.route("/api/submit-answer", methods=["POST"])

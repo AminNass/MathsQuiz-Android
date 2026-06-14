@@ -3,52 +3,56 @@ from flask import Flask, render_template, request, jsonify
 import webview
 import mathsQuiz
 
-import threading
-import os
 
-_active_players = []
+class AndroidMediaPlayer:
+    
+    _activePlayers = []
 
-def play_native_sound(filename):
-    try:
-        sound_path = os.path.abspath(
-            os.path.join("static", "sounds", filename)
-        )
+    @classmethod
+    def playSound(cls, filename):
+        import threading
+        import os
 
-        if not os.path.isfile(sound_path):
-            print(f"File not found: {sound_path}")
+        try:
+            soundPath = os.path.abspath(
+                os.path.join("static", "sounds", filename)
+            )
+
+            if not os.path.isfile(soundPath):
+                print(f"File not found: {soundPath}")
+                return False
+
+            from jnius import autoclass
+
+            MediaPlayer = autoclass("android.media.MediaPlayer")
+
+            player = MediaPlayer()
+            player.setDataSource(soundPath)
+            player.prepare()
+            player.start()
+
+            cls._activePlayers.append(player)
+
+            duration = player.getDuration()
+
+            def cleanup():
+                try:
+                    player.release()
+                except:
+                    pass
+
+                try:
+                    cls._activePlayers.remove(player)
+                except:
+                    pass
+
+            threading.Timer(max(duration / 1000, 1), cleanup).start()
+
+            return True
+
+        except Exception as e:
+            print(f"Audio playback failed: {e}")
             return False
-
-        from jnius import autoclass
-
-        MediaPlayer = autoclass("android.media.MediaPlayer")
-
-        player = MediaPlayer()
-        player.setDataSource(sound_path)
-        player.prepare()
-        player.start()
-
-        _active_players.append(player)
-
-        duration = player.getDuration()
-
-        def cleanup():
-            try:
-                player.release()
-            except:
-                pass
-
-            try:
-                _active_players.remove(player)
-            except:
-                pass
-
-        threading.Timer(max(duration / 1000, 1), cleanup).start()
-
-        return True
-
-    except Exception as e:
-        print(f"Audio playback failed: {e}")
-        return False
 
 class App:
     def __init__(self):
@@ -58,6 +62,9 @@ class App:
         # Session Data:
         self.currentManager: mathsQuiz.QuestionManager | None = None
         self.history = {}
+
+        # Android Media Player:
+        self.AndroidMediaPlayer = AndroidMediaPlayer()
 
         # Register app menus
         self.appMenus()
@@ -170,7 +177,7 @@ class App:
         @self.app.route('/api/play/<filename>')
         def playSound(filename):
             # Directly hand off back-end audio requests straight to the native hardware player
-            play_native_sound(filename)
+            self.AndroidMediaPlayer.playSound(filename)
             return jsonify({"status": "played"})
 
         @self.app.route("/api/submit-answer", methods=["POST"])

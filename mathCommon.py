@@ -9,7 +9,7 @@ import json
 def clamp(value, minimum, maximum):
     return max(minimum, min(value, maximum))
 
-# Gets all the function
+# This function gets all the factors.
 def factors(num: int) -> list:
 
     factors = set()
@@ -22,30 +22,36 @@ def factors(num: int) -> list:
     sortedFactors = sorted(list(factors))
     return sortedFactors
 
-def addAddition(expression, difficulty):
-    minNum = round(clamp(difficulty - 5, 1, 12))
-    maxNum = round(clamp(math.exp(2.1) * difficulty / 3, 2, 12))
-
+# This gets the history of questions.
 def getHistory():
+    # Checks if the app is running on a android environment.
     if 'ANDROID_PRIVATE_VOLUME' in os.environ:
+        # If in the android environment then set the base path to 'ANDROID_PRIVATE_VOLUME'.
+        # This path is a reserved place for this app to read and write files.
+        # No other apps has access to this reserved space.
         basePath = os.environ['ANDROID_PRIVATE_VOLUME']
     else:
         # Falls back for dev env
         basePath = os.getcwd()
 
+    # Sets the file path to the right location.
     filePath = os.path.join(basePath, "mathQuizSaves", "history.json")
 
     # If the file doesn't exist yet, return an empty list
     if not os.path.exists(filePath):
         return []
 
+    # This will attempt to read the file and return the data inside the json file.
     try:
         with open(filePath, 'r') as f:
             data = json.load(f)
+            # This will only return if it's an instance of a list (Since the questions are stored in a list).
             return data if isinstance(data, list) else []
     except Exception:
+        # If error accouters then it returns nothing.
         return []
 
+# A function that returns a random operation.
 def randomType():
     types = ["+","-","*","/"]
     return random.choice(types)

@@ -235,5 +235,10 @@ class App:
             print("Returned request, error.")
             return jsonify({"status": "error", "message": "Answer submitted unsuccessfully"})
 
-
-
+## --- NOTES --- ##
+#
+# Adding the underscore under a function name is a good naming convention for making functions private.
+# As it's not required it lets python developers know that this function should only be used by its class.
+# This applies to class attributes as well. Python has no real way of making it private.
+#
+## --- ENDOFNOTES --- ##

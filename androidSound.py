@@ -1,3 +1,8 @@
+# This is the android media player.
+# Current state is that its unstable.
+# It can crash if the app is currently lagging.
+# It's mainly used for the cheering at the end of each game.
+# It should be only used for long mp3 files.
 class AndroidMediaPlayer:
 
     _activePlayers = []
@@ -60,7 +65,10 @@ import os
 import time
 from jnius import autoclass
 
-
+# This is the android sound pool. Its semi stable and has problems when spammed.
+# There are thresholds for the amount of times a sound can be played.
+# It uses thread locking to prevent only one thread to access the sound pool at a time.
+# It can still crash but mainly because of its incompatibility with pyhon.
 class AndroidSoundPool:
 
     _SoundPool = None
@@ -72,9 +80,6 @@ class AndroidSoundPool:
     _lastPlay = 0.0
     _minInterval = 0.05
 
-    # -------------------------
-    # INIT SOUND POOL
-    # -------------------------
     @classmethod
     def _init(cls):
         with cls._lock:
@@ -101,9 +106,6 @@ class AndroidSoundPool:
 
             cls._SoundPool = True
 
-    # -------------------------
-    # PRELOAD SOUND
-    # -------------------------
     @classmethod
     def preload(cls, key, filename):
         cls._init()
@@ -124,9 +126,6 @@ class AndroidSoundPool:
         print(f"Preloaded sound: {key} ({soundID})")
         return True
 
-    # -------------------------
-    # PLAY SOUND (THREAD SAFE)
-    # -------------------------
     @classmethod
     def play(cls, key, volume=1.0):
         cls._init()
@@ -148,7 +147,6 @@ class AndroidSoundPool:
             cls._lastPlay = now
 
         try:
-            # IMPORTANT: defensive cast (PyJNIus sometimes needs int)
             streamID = cls._soundPool.play(
                 int(soundID),
                 float(volume),
@@ -166,3 +164,15 @@ class AndroidSoundPool:
         except Exception as e:
             print("SoundPool error:", e)
             return False
+
+## --- DEV NOTE --- ##
+#
+# The android system has a lot of problems.
+# Since we are using jnius to interact with java classes there is a very high change of errors happening unexpectedly.
+# I tried to debug the problem, but it's really hard to tell what's really going wrong.
+# I have tried researching solutions, but It's difficult to find a working solution.
+# Simply the problem is incompatibility making playing a sound unstable.
+# In a proper android app development environment python would not be used and Java would be used which is a supported language.
+# At this state its untable but it works. There are delays when playing audio but there isn't much to do about it.
+#
+## --- ENDDEVNOTE --- ##

@@ -5,9 +5,11 @@ from sympy import sympify
 import os
 import json
 
+# Created my own clamp function using python's max and min.
 def clamp(value, minimum, maximum):
     return max(minimum, min(value, maximum))
 
+# Gets all the function
 def factors(num: int) -> list:
 
     factors = set()

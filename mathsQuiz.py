@@ -4,18 +4,22 @@ import mathCommon as mc
 import math
 from sympy import sympify
 
+# The question class allows for a question to be in the correct format.
+# Making use of object orientated programming I have made my own question making a question kinda its own DataType.
 class Question:
 
+    # Code that initialized when a new question is created.
     def __init__(self, question: str):
         """
         This class formats a question in a ready format. Stores the full question, the expression, and the answer.
         Also when checking the answer it will store the user answer as an attribute as well.\n
         * Question must have e.g "What is the sum of [4 + 6]?"\n
-        Optional but you can add the question wording at the start. This could be anything relevant to the question.
+        Optional, but you can add the question wording at the start. This could be anything relevant to the question.
         Then the expression itself must be surrounded by square brackets. This is so this class knows where the expression is.
         If you put the '*' or '/' symbols it will automatically replace them with '×' or '÷'.
         :param question:
         """
+        # All the generic keyboard symbols corresponding to the real maths symbols.
         symbols = {"+":"+","-":"-","*":"×","/":"÷"}
 
         # Removing square brackets from the question.
